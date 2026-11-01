@@ -502,7 +502,13 @@ async function sync(full) {
       if (full) db = emptyDb();
       const lastM = db.movements.length ? db.movements[db.movements.length - 1].id : 0;
       const lastE = db.events.length ? db.events[db.events.length - 1].id : 0;
-      const s = await rpc("get_state", { p_token: session.token, p_after_move: lastM, p_after_event: lastE });
+      let s = await rpc("get_state", { p_token: session.token, p_after_move: lastM, p_after_event: lastE });
+      // the log was cleared on the server (fresh start): drop everything saved on this phone and load again
+      if ((lastM || lastE) && s.events.some(e => e.action === "log reset")) {
+        db = emptyDb(); shownNumReset();
+        s = await rpc("get_state", { p_token: session.token, p_after_move: 0, p_after_event: 0 });
+        setTimeout(() => toast("Test entries were cleared – fresh start"), 300);
+      }
       db.me = s.me; db.users = s.users; db.settings = s.settings;
       db.movements = db.movements.concat(s.movements);
       db.events = db.events.concat(s.events);
@@ -587,6 +593,7 @@ function entryEl(m, D, withAction) {
 
 /* ---------- stock page ---------- */
 const shownNum = {};
+function shownNumReset() { Object.keys(shownNum).forEach(k => delete shownNum[k]); }
 const MORE_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
 function renderStock(D) {
   const low = db.settings || {};
@@ -966,7 +973,7 @@ function renderMore(D) {
   const el = $("eventList"); el.innerHTML = "";
   const evs = db.events.slice().reverse().slice(0, 100);
   if (!evs.length) el.append(h("div", { class: "empty" }, "Nothing yet."));
-  evs.forEach(e => el.append(h("div", { class: "entry" }, h("div", { class: "main" }, h("div", { class: "ttl" }, cap(e.action)), h("div", { class: "sub" }, (e.details || "") + " · by " + (D.userName[e.user_id] || "?") + " · " + stamp(e.logged_at))))));
+  evs.forEach(e => el.append(h("div", { class: "entry" }, h("div", { class: "main" }, h("div", { class: "ttl" }, cap(e.action)), h("div", { class: "sub" }, (e.details || "") + " · by " + (D.userName[e.user_id] || "Supabase") + " · " + stamp(e.logged_at))))));
   $("syncInfo").textContent = "Last updated " + (db.synced ? stamp(db.synced) : "never") + ". Updates every 30 seconds while open.";
   setOnline(online);
 }

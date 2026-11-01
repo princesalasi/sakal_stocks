@@ -322,8 +322,7 @@ details.f[open] > summary { margin-bottom: 12px; }
     <button class="link" id="histMore" type="button" hidden>Show more</button>
     <div class="section-h">Export</div>
     <div class="card">
-      <div class="field"><label for="sep">CSV format</label>
-        <select id="sep"><option value=",">Comma – English Excel / Google Sheets</option><option value=";">Semicolon – German/European Excel</option></select></div>
+      <p class="small muted" style="margin:0 0 12px">Downloads the entries shown above (with your filter) as a CSV file for Excel or Google Sheets.</p>
       <button class="btn secondary" id="exportBtn" type="button" style="width:100%">Download CSV</button>
     </div>
   </section>
@@ -342,6 +341,7 @@ details.f[open] > summary { margin-bottom: 12px; }
         <div class="rowf"><label for="tTo">To</label><input id="tTo" type="date"></div>
       </div>
       <p class="hint full" id="tMsg" hidden></p>
+      <button class="btn secondary full" id="pdfBtn" type="button" style="margin-bottom:14px">Download PDF</button>
     </div>
     <div id="trendsEmpty" class="card empty" hidden>No entries in this period yet.</div>
     <div id="trendsBody">
@@ -771,7 +771,7 @@ function renderHistory(D) {
 function exportCSV() {
   const D = derive(), list = filtered(D);
   if (!list.length) { toast("Nothing to export"); return; }
-  const sep = $("sep").value;
+  const sep = ",";
   const cell = v => { let s = v === null || v === undefined ? "" : String(v); if (/["\n\r]/.test(s) || s.includes(sep)) s = '"' + s.replace(/"/g, '""') + '"'; return s; };
   const head = ["ID", "Entered at", "Date", "Product", "Batch", "Type", "Boxes", "Reason", "Customer / receiver", "Note", "By", "Undoes ID", "Undone by ID"];
   const lines = [head.map(cell).join(sep)];
@@ -801,6 +801,7 @@ function bucketTitle(key, step) {
   if (step === "month") { const [y, m] = key.split("-"); return new Date(+y, +m - 1, 1).toLocaleDateString("en-GB", { month: "long", year: "numeric" }); }
   return "Week " + key.split("-W")[1] + ", " + key.split("-W")[0];
 }
+let lastTrend = null;
 function renderTrends(D) {
   const per = $("tPeriod").value, step = $("tStep").value;
   let end = today();
@@ -822,6 +823,7 @@ function renderTrends(D) {
     if (!seen.has(k)) { seen.add(k); keys.push(k); }
     endOf[k] = iso;
   }
+  lastTrend = { start, end, step };
   const inRange = db.movements.filter(m => m.entry_date >= start && m.entry_date <= end);
   $("trendsEmpty").hidden = inRange.length > 0; $("trendsBody").hidden = inRange.length === 0;
   if (keys.length > 400) {
@@ -878,6 +880,7 @@ function renderTrends(D) {
 
 /* ---------- charts (SVG, no libraries) ---------- */
 const SVGNS = "http://www.w3.org/2000/svg";
+const chartOpts = {};
 function sv(tag, attrs, parent) { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.append(e); return e; }
 function niceTicks(min, max, count) {
   if (min === max) max = min + 1;
@@ -887,9 +890,10 @@ function niceTicks(min, max, count) {
   const t = []; for (let v = lo; v <= hi + step / 2; v += step) t.push(Math.round(v * 1e6) / 1e6); return t;
 }
 function drawChart(wrap, o) {
+  if (wrap.id && !o.offscreen) chartOpts[wrap.id] = o;
   wrap.innerHTML = "";
   wrap.append(h("div", { class: "legend" + (o.type === "line" ? " lines" : "") }, o.series.map(s => h("span", null, h("i", { style: "background:" + s.color }), s.name))));
-  const W = Math.max(280, wrap.clientWidth || 320), H = 200, m = { l: 40, r: 10, t: 8, b: 24 };
+  const W = Math.max(280, wrap.clientWidth || 320), H = o.height || 200, m = { l: 40, r: 10, t: 8, b: 24 };
   const iw = W - m.l - m.r, ih = H - m.t - m.b;
   const all = o.series.flatMap(s => s.values);
   let lo = Math.min(0, ...all), hi = Math.max(1, ...all);
@@ -1129,6 +1133,120 @@ async function simpleAction(fn, args, question) {
   try { await rpc(fn, Object.assign({ p_token: session.token }, args)); await sync(); toast("Done"); } catch (e) { toast(e.message, 4000); }
 }
 
+/* ================= PDF of the trends page (no libraries) ================= */
+// Charts are drawn in light colours for printing, whatever the phone's theme.
+const PRINT_COLORS = { ripe: "#c4783a", unripe: "#2f9c86", grid: "#e3e3e8", text2: "#6e6e73", card: "#ffffff", text: "#000000" };
+function svgToJpeg(svg) {
+  return new Promise((resolve, reject) => {
+    const clone = svg.cloneNode(true);
+    const vb = svg.viewBox.baseVal, scale = 3;
+    clone.setAttribute("width", vb.width * scale); clone.setAttribute("height", vb.height * scale);
+    clone.setAttribute("font-family", "Helvetica, Arial, sans-serif");
+    clone.querySelectorAll(".axis text").forEach(t => { t.setAttribute("fill", "var(--text2)"); t.setAttribute("font-size", "14"); });
+    clone.querySelectorAll("[opacity]").forEach(e => e.setAttribute("opacity", "1"));
+    clone.querySelectorAll("[visibility=visible]").forEach(e => e.setAttribute("visibility", "hidden"));
+    let str = new XMLSerializer().serializeToString(clone).replace(/var\(--([a-z0-9-]+)\)/g, (m, k) => PRINT_COLORS[k] || "#000000");
+    if (!/xmlns=/.test(str)) str = str.replace("<svg", '<svg xmlns="http://www.w3.org/2000/svg"');
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas"); c.width = vb.width * scale; c.height = vb.height * scale;
+      const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(img, 0, 0, c.width, c.height);
+      const b64 = c.toDataURL("image/jpeg", 0.92).split(",")[1], bin = atob(b64), bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      resolve({ bytes, w: c.width, h: c.height, ratio: vb.height / vb.width });
+    };
+    img.onerror = () => reject(new Error("Could not draw the chart"));
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(str);
+  });
+}
+// Text for the built-in PDF font (Latin-1 only)
+const pdfText = s => String(s).replace(/[–—]/g, "-").replace(/[→]/g, "->").replace(/[−]/g, "-").replace(/[^\x20-\x7e\xa0-\xff]/g, "").replace(/([()\\])/g, "\\$1");
+function hexRGB(hex) { const n = parseInt(hex.slice(1), 16); return [(n >> 16) / 255, (n >> 8 & 255) / 255, (n & 255) / 255].map(v => v.toFixed(3)).join(" "); }
+function buildPdf(pages, images) {
+  // pages: array of content-stream strings; images: [{bytes,w,h}] referenced as /Im0, /Im1 ...
+  const enc = s => { const a = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) a[i] = s.charCodeAt(i) & 255; return a; };
+  const chunks = [], offsets = []; let len = 0;
+  const push = x => { const b = typeof x === "string" ? enc(x) : x; chunks.push(b); len += b.length; };
+  const obj = (n, body) => { offsets[n] = len; push(n + " 0 obj\n"); body.forEach(push); push("\nendobj\n"); };
+  const nImg = images.length, firstImg = 4, firstPage = firstImg + nImg;
+  push("%PDF-1.4\n%\xe2\xe3\xcf\xd3\n");
+  obj(1, ["<< /Type /Catalog /Pages 2 0 R >>"]);
+  const kids = pages.map((_, i) => (firstPage + i * 2) + " 0 R").join(" ");
+  obj(2, ["<< /Type /Pages /Kids [" + kids + "] /Count " + pages.length + " >>"]);
+  obj(3, ["<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"]);
+  images.forEach((im, i) => obj(firstImg + i, ["<< /Type /XObject /Subtype /Image /Width " + im.w + " /Height " + im.h + " /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length " + im.bytes.length + " >>\nstream\n", im.bytes, "\nendstream"]));
+  const xo = images.map((_, i) => "/Im" + i + " " + (firstImg + i) + " 0 R").join(" ");
+  pages.forEach((content, i) => {
+    const pn = firstPage + i * 2, cn = pn + 1, body = enc(content);
+    obj(pn, ["<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R >> /XObject << " + xo + " >> >> /Contents " + cn + " 0 R >>"]);
+    obj(cn, ["<< /Length " + body.length + " >>\nstream\n", body, "\nendstream"]);
+  });
+  const total = firstPage + pages.length * 2, xref = len;
+  let x = "xref\n0 " + total + "\n0000000000 65535 f \n";
+  for (let i = 1; i < total; i++) x += String(offsets[i]).padStart(10, "0") + " 00000 n \n";
+  push(x + "trailer\n<< /Size " + total + " /Root 1 0 R >>\nstartxref\n" + xref + "\n%%EOF\n");
+  return new Blob(chunks, { type: "application/pdf" });
+}
+async function downloadTrendsPdf() {
+  if (!lastTrend || $("trendsBody").hidden) { toast("Nothing to put in the PDF for this period"); return; }
+  const btn = $("pdfBtn"); btn.disabled = true; btn.textContent = "Making PDF…";
+  try {
+    const stepName = { day: "day", week: "week", month: "month" }[lastTrend.step];
+    const charts = [["Stock level (boxes)", "chStock"], ["Added (boxes per " + stepName + ")", "chProd"], ["Subtracted (boxes per " + stepName + ")", "chOut"]];
+    const images = [];
+    // draw each chart again, wide and short, just for the page
+    const tmp = h("div", { style: "position:absolute;left:-10000px;top:0;width:760px" }); document.body.append(tmp);
+    try {
+      for (const [, id] of charts) {
+        const box = h("div", { class: "chart-wrap" }); tmp.append(box);
+        drawChart(box, Object.assign({}, chartOpts[id], { offscreen: true, height: 250 }));
+        images.push(await svgToJpeg(box.querySelector("svg")));
+      }
+    } finally { tmp.remove(); }
+    const M = 40, W = 595 - 2 * M; const pages = []; let c = "", y = 842 - M;
+    const text = (str, x, yy, size, color) => { c += "BT " + hexRGB(color || "#000000") + " rg /F1 " + size + " Tf " + x.toFixed(1) + " " + yy.toFixed(1) + " Td (" + pdfText(str) + ") Tj ET\n"; };
+    const rect = (x, yy, w, hh, color) => { c += hexRGB(color) + " rg " + [x, yy, w, hh].map(v => v.toFixed(1)).join(" ") + " re f\n"; };
+    const newPage = () => { pages.push(c); c = ""; y = 842 - M; };
+    const need = hh => { if (y - hh < M) newPage(); };
+    // header
+    text("Sakal Stock - Trends", M, y - 20, 22); y -= 30;
+    text(niceDay(lastTrend.start) + " to " + niceDay(lastTrend.end) + "  |  per " + stepName, M, y - 12, 11, "#6e6e73"); y -= 16;
+    text("Made " + stamp(new Date().toISOString()) + " by " + session.user.name + "  |  Stock now: ripe " + derive().stock.ripe + ", unripe " + derive().stock.unripe + " boxes", M, y - 12, 11, "#6e6e73"); y -= 30;
+    charts.forEach(([title], i) => {
+      const im = images[i], hh = W * im.ratio;
+      need(hh + 44);
+      text(title, M, y - 14, 14); y -= 22;
+      rect(M, y - 9, 9, 9, PRINT_COLORS.ripe); text("Ripe", M + 13, y - 8.5, 10, "#6e6e73");
+      rect(M + 50, y - 9, 9, 9, PRINT_COLORS.unripe); text("Unripe", M + 63, y - 8.5, 10, "#6e6e73"); y -= 14;
+      c += "q " + W.toFixed(1) + " 0 0 " + hh.toFixed(1) + " " + M + " " + (y - hh).toFixed(1) + " cm /Im" + i + " Do Q\n";
+      y -= hh + 22;
+    });
+    // tables
+    const table = (title, el) => {
+      const rows = [...el.querySelectorAll("tr")].map(tr => [...tr.children].map(td => td.textContent.trim()));
+      need(28 + rows.length * 16); text(title, M, y - 14, 14); y -= 26;
+      if (!rows.length) { text("None in this period", M, y - 10, 10, "#6e6e73"); y -= 22; return; }
+      const cols = rows[0].length, colW = W / cols;
+      rows.forEach((r, ri) => {
+        need(16);
+        r.forEach((cell, ci) => { const x = ci === 0 ? M : M + colW * ci + colW - 6 - cell.length * 5.2; text(cell, x, y - 10, 10, ri === 0 ? "#6e6e73" : "#000000"); });
+        c += "0.85 0.85 0.87 RG 0.5 w " + M + " " + (y - 14).toFixed(1) + " m " + (M + W) + " " + (y - 14).toFixed(1) + " l S\n";
+        y -= 16;
+      });
+      y -= 16;
+    };
+    table("Subtracted by reason", $("tReasons"));
+    table("By person", $("tPeople"));
+    pages.push(c);
+    const blob = buildPdf(pages, images);
+    const a = h("a", { href: URL.createObjectURL(blob), download: "sakal_trends_" + lastTrend.start + "_to_" + lastTrend.end + ".pdf" });
+    document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    toast("PDF downloaded");
+  } catch (e) { toast(e.message || "Could not make the PDF", 4500); }
+  finally { btn.disabled = false; btn.textContent = "Download PDF"; }
+}
+
 /* ================= login ================= */
 let loginUser = null, pinVal = "";
 async function showLogin(msg) {
@@ -1222,8 +1340,6 @@ $("seeAll").onclick = () => showTab("history");
 ["fProduct", "fKind", "fUser", "fBatch", "fFrom", "fTo"].forEach(id => $(id).addEventListener("input", () => { histLimit = 80; render(); }));
 $("fClear").onclick = () => { ["fProduct", "fKind", "fUser", "fBatch", "fFrom", "fTo"].forEach(id => $(id).value = ""); render(); };
 $("histMore").onclick = () => { histLimit += 200; render(); };
-$("sep").value = prefs.sep || ((1.5).toLocaleString().includes(",") ? ";" : ",");
-$("sep").onchange = () => { prefs.sep = $("sep").value; save(LS_PREFS, prefs); };
 $("exportBtn").onclick = exportCSV;
 $("tPeriod").onchange = () => {
   if ($("tPeriod").value === "custom" && !$("tFrom").value) {
@@ -1232,6 +1348,7 @@ $("tPeriod").onchange = () => {
   render();
 };
 $("tStep").onchange = render;
+$("pdfBtn").onclick = downloadTrendsPdf;
 ["tFrom", "tTo"].forEach(id => $(id).addEventListener("change", render));
 $("changePinBtn").onclick = changePinSheet;
 $("logoutBtn").onclick = async () => { if (!confirm("Log out?")) return; try { await rpc("logout", { p_token: session.token }); } catch (e) {} endSession(); };

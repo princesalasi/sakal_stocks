@@ -4,220 +4,319 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sakal Stock</title>
-<meta name="theme-color" content="#1f6b2c">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Sakal Stock">
 <style>
+/* ---------- system colours (light / dark selected, not flipped) ---------- */
 :root {
   color-scheme: light;
-  --bg: #f3f4f1; --card: #fff; --text: #1b1b1a; --muted: #5d5c58; --line: #dddcd6; --input-bg: #fff;
-  --brand: #1f6b2c; --brand-ink: #fff; --good: #1a7f37; --bad: #c62828;
-  --warn-bg: #fff4d6; --warn-ink: #6b4b00; --grid: #e7e6e1;
-  --ripe: #eb6834; --unripe: #2a78d6;
+  --bg: #f2f2f7; --card: #ffffff; --card2: #f2f2f7; --text: #000000; --text2: #6e6e73; --text3: #8e8e93;
+  --sep: rgba(60,60,67,.18); --fill: rgba(118,118,128,.12); --fill2: rgba(118,118,128,.2);
+  --tint: #1f8a3b; --tint-ink: #ffffff; --red: #d70015; --green: #1a7f37; --orange-bg: #fff1d6; --orange-ink: #8a4b00;
+  --ripe: #c4783a; --unripe: #2f9c86; --grid: rgba(60,60,67,.12);
+  --ripe-card: linear-gradient(155deg, #b98250 0%, #94653d 100%);
+  --unripe-card: linear-gradient(155deg, #52ae9a 0%, #3b8d7b 100%);
+  --bar: rgba(249,249,249,.78); --scrim: rgba(0,0,0,.32);
+  --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.06);
 }
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
-    --bg: #121211; --card: #1d1d1b; --text: #f0efec; --muted: #b4b3aa; --line: #3a3a37; --input-bg: #262624;
-    --brand: #3f9a4f; --good: #5cc46e; --bad: #ff6b6b; --warn-bg: #3a2f10; --warn-ink: #ffd98a; --grid: #2c2c2a;
-    --ripe: #d95926; --unripe: #3987e5;
+    --bg: #000000; --card: #1c1c1e; --card2: #2c2c2e; --text: #ffffff; --text2: #98989f; --text3: #8d8d93;
+    --sep: rgba(84,84,88,.6); --fill: rgba(118,118,128,.24); --fill2: rgba(118,118,128,.36);
+    --tint: #30b350; --tint-ink: #000000; --red: #ff6961; --green: #32d74b; --orange-bg: #3d2a0a; --orange-ink: #ffcf7a;
+    --ripe: #c27a3f; --unripe: #2e9a84; --grid: rgba(84,84,88,.45);
+    --ripe-card: linear-gradient(155deg, #a87648 0%, #7f5634 100%);
+    --unripe-card: linear-gradient(155deg, #4a9f8c 0%, #327c6c 100%);
+    --bar: rgba(22,22,24,.78); --scrim: rgba(0,0,0,.5);
+    --shadow: none;
   }
 }
-* { box-sizing: border-box; }
-body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 40px; }
-header { background: var(--brand); color: var(--brand-ink); padding: 10px 12px 0; position: sticky; top: 0; z-index: 10; }
-.hrow { display: flex; justify-content: space-between; align-items: center; max-width: 720px; margin: 0 auto 6px; gap: 8px; }
-.hrow h1 { font-size: 18px; margin: 0; }
-.who { font-size: 13px; opacity: .9; display: flex; align-items: center; gap: 6px; }
-.dot { width: 8px; height: 8px; border-radius: 50%; background: #9be59b; display: inline-block; }
-.dot.off { background: #ffb4a8; }
-nav { display: flex; max-width: 720px; margin: 0 auto; }
-nav button { flex: 1; background: transparent; color: var(--brand-ink); border: 0; padding: 10px 2px; font-size: 15px; border-bottom: 3px solid transparent; opacity: .8; cursor: pointer; }
-nav button[aria-selected="true"] { border-bottom-color: #fff; opacity: 1; font-weight: 600; }
-main { max-width: 720px; margin: 0 auto; padding: 10px; }
-.tab[hidden], [hidden] { display: none !important; }
-.card { background: var(--card); border-radius: 10px; padding: 12px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
-.card h2 { font-size: 15px; margin: 0 0 8px; }
-.muted { color: var(--muted); } .small { font-size: 13px; }
-.pos { color: var(--good); } .neg { color: var(--bad); }
-.grid2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 8px 10px; }
-.full { grid-column: 1 / -1; }
-.field label, .lbl { display: block; font-size: 13px; color: var(--muted); margin-bottom: 3px; }
-.field input, .field select, .field textarea { width: 100%; min-width: 0; padding: 9px 8px; font-size: 16px; border: 1px solid var(--line); border-radius: 6px; background: var(--input-bg); color: var(--text); font-family: inherit; }
-.btn { padding: 11px 12px; font-size: 16px; border-radius: 8px; border: 0; background: var(--brand); color: var(--brand-ink); cursor: pointer; font-weight: 600; font-family: inherit; }
-.btn.secondary { background: transparent; color: var(--text); border: 1px solid var(--line); font-weight: 500; }
-.btn.danger { background: transparent; color: var(--bad); border: 1px solid var(--line); }
-.btn.small { padding: 6px 10px; font-size: 14px; }
-.btn:disabled { opacity: .5; cursor: default; }
-.row { display: flex; gap: 8px; flex-wrap: wrap; }
-.row > .btn { flex: 1; }
-.seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-.seg button { flex: 1; padding: 10px; border: 0; background: var(--input-bg); color: var(--text); font-size: 15px; cursor: pointer; font-family: inherit; }
-.seg button + button { border-left: 1px solid var(--line); }
-.seg button[aria-pressed="true"] { background: var(--brand); color: var(--brand-ink); font-weight: 600; }
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chips button { padding: 7px 12px; border-radius: 16px; border: 1px solid var(--line); background: var(--input-bg); color: var(--text); font-size: 14px; cursor: pointer; }
-.chips button[aria-pressed="true"] { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
-.stepper { display: flex; gap: 6px; }
-.stepper input { text-align: center; font-size: 20px; font-weight: 600; }
-.stepper button { width: 48px; flex: none; font-size: 22px; padding: 0; }
-.err { color: var(--bad); font-size: 14px; margin-top: 8px; }
-.banner { background: var(--warn-bg); color: var(--warn-ink); border-radius: 8px; padding: 8px 10px; font-size: 14px; margin-bottom: 10px; }
-/* stock */
-.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-.tile { background: var(--card); border-radius: 10px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); border-top: 4px solid var(--line); }
-.tile.ripe { border-top-color: var(--ripe); } .tile.unripe { border-top-color: var(--unripe); }
-.tile .k { font-size: 14px; color: var(--muted); }
-.tile .v { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.15; margin-top: 2px; }
-.tile .u { font-size: 14px; font-weight: 500; color: var(--muted); }
-.tile .low { display: inline-block; margin-top: 4px; font-size: 12px; padding: 2px 7px; border-radius: 10px; background: var(--warn-bg); color: var(--warn-ink); font-weight: 600; }
-.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-.actions .btn.wide { grid-column: 1 / -1; }
-table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
-table.t th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; padding: 4px 4px; border-bottom: 1px solid var(--line); }
-table.t td { padding: 7px 4px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
-table.t td.n, table.t th.n { text-align: right; }
-.key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
-/* log entries */
-.day { font-size: 13px; font-weight: 700; color: var(--muted); margin: 12px 2px 4px; }
-.entry { display: flex; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
-.entry:first-child { border-top: 0; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 17px/1.35 -apple-system, BlinkMacSystemFont, system-ui, "Segoe UI", Roboto, sans-serif; letter-spacing: -0.01em; }
+button, input, select { font: inherit; color: inherit; letter-spacing: inherit; }
+[hidden] { display: none !important; }
+main { max-width: 640px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 8px) 16px calc(env(safe-area-inset-bottom) + 96px); }
+
+/* ---------- type ---------- */
+.large { font-size: 34px; line-height: 1.12; font-weight: 700; letter-spacing: -0.025em; margin: 18px 4px 4px; }
+.status { font-size: 13px; color: var(--text2); margin: 0 4px 16px; display: flex; align-items: center; gap: 6px; letter-spacing: 0; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); display: inline-block; }
+.dot.off { background: var(--red); }
+.section-h { font-size: 13px; text-transform: uppercase; letter-spacing: .02em; color: var(--text2); margin: 26px 16px 7px; font-weight: 400; }
+.muted { color: var(--text2); } .small { font-size: 13px; letter-spacing: 0; }
+.pos { color: var(--green); } .neg { color: var(--red); }
+
+/* ---------- press feedback (on pointer-down, instant) ---------- */
+.press { transition: transform 160ms cubic-bezier(.2,.8,.2,1), opacity 160ms; }
+.press:active { transform: scale(.97); }
+
+/* ---------- product cards ---------- */
+.cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pcard { position: relative; border: 0; border-radius: 26px; padding: 16px 16px 18px; min-height: 132px; text-align: left; color: #fff; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 8px 24px -10px rgba(0,0,0,.45); outline: none; }
+.pcard.ripe { background: var(--ripe-card); } .pcard.unripe { background: var(--unripe-card); }
+.pcard::after { content: ""; position: absolute; inset: -4px; border-radius: 30px; border: 3px solid transparent; transition: border-color 200ms; pointer-events: none; }
+.pcard[aria-pressed="true"]::after { border-color: var(--text); }
+.pcard:focus-visible::after { border-color: var(--tint); }
+.pname { font-size: 19px; line-height: 1.2; font-weight: 500; opacity: .86; padding-right: 40px; letter-spacing: -0.01em; }
+.pnum { font-size: 44px; font-weight: 700; letter-spacing: -0.03em; line-height: 1; font-variant-numeric: tabular-nums; margin-top: 14px; }
+.punit { font-size: 17px; font-weight: 500; opacity: .78; margin-left: 4px; letter-spacing: -0.01em; }
+.pmore { position: absolute; top: 12px; right: 12px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: rgba(255,255,255,.22); color: #fff; display: grid; place-items: center; cursor: pointer; }
+.pmore svg { width: 18px; height: 18px; }
+.plow { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; font-size: 12px; font-weight: 600; background: rgba(0,0,0,.25); padding: 3px 8px; border-radius: 10px; align-self: flex-start; letter-spacing: 0; }
+
+/* ---------- entry panel ---------- */
+.panel { background: var(--card); border-radius: 22px; margin-top: 16px; padding: 16px; box-shadow: var(--shadow); }
+.panel-for { font-size: 15px; color: var(--text2); text-align: center; margin-bottom: 8px; letter-spacing: 0; }
+.panel-for b { color: var(--text); font-weight: 600; }
+.qty { width: 100%; border: 0; background: var(--fill); border-radius: 16px; text-align: center; font-size: 46px; font-weight: 700; letter-spacing: -0.03em; padding: 12px 8px; font-variant-numeric: tabular-nums; outline: none; caret-color: var(--tint); }
+.qty::placeholder { color: var(--text3); font-weight: 500; }
+.qty:focus { box-shadow: 0 0 0 2px var(--tint) inset; }
+.ops { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.op { border: 0; border-radius: 16px; padding: 15px 8px; font-size: 18px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+.op svg { width: 20px; height: 20px; }
+.op.add { background: var(--tint); color: var(--tint-ink); }
+.op.sub { background: var(--fill2); color: var(--text); }
+.op:disabled { opacity: .4; cursor: default; }
+.rows { margin-top: 14px; border-radius: 14px; background: var(--card2); overflow: hidden; }
+.rowf { display: flex; align-items: center; gap: 12px; padding: 0 14px; min-height: 48px; position: relative; }
+.rowf + .rowf::before { content: ""; position: absolute; top: 0; left: 14px; right: 0; border-top: .5px solid var(--sep); }
+.rowf label { flex: none; font-size: 17px; }
+.rowf input { flex: 1; min-width: 0; border: 0; background: transparent; text-align: right; font-size: 17px; color: var(--text2); padding: 12px 0; outline: none; }
+.rowf input:focus { color: var(--text); }
+.rowf input[type=date] { -webkit-appearance: none; appearance: none; display: flex; justify-content: flex-end; }
+.rowf input::-webkit-date-and-time-value { text-align: right; }
+.rowf .chg { font-size: 12px; color: var(--tint); flex: none; letter-spacing: 0; }
+.link { display: block; width: 100%; border: 0; background: none; color: var(--tint); font-size: 17px; padding: 14px; text-align: center; cursor: pointer; }
+
+/* ---------- grouped lists ---------- */
+.group { background: var(--card); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+.card { background: var(--card); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; box-shadow: var(--shadow); }
+.card h2 { font-size: 17px; margin: 0 0 8px; font-weight: 600; }
+.entry { display: flex; gap: 12px; align-items: flex-start; padding: 11px 16px; position: relative; }
+.entry + .entry::before { content: ""; position: absolute; top: 0; left: 60px; right: 0; border-top: .5px solid var(--sep); }
+.card .entry, .sheet .entry { padding-left: 0; padding-right: 0; }
+.card .entry + .entry::before, .sheet .entry + .entry::before { left: 44px; }
+.ico { flex: none; width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 18px; margin-top: 1px; }
+.ico.ripe { background: var(--ripe); } .ico.unripe { background: var(--unripe); }
 .entry .main { flex: 1; min-width: 0; }
-.entry .ttl { font-weight: 600; }
-.entry .sub { font-size: 13px; color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
-.entry .qty { font-weight: 700; font-size: 18px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.entry.struck .ttl, .entry.struck .qty { text-decoration: line-through; opacity: .6; }
-.tag { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 9px; background: var(--line); color: var(--text); margin-left: 4px; font-weight: 500; vertical-align: 1px; }
-.tag.warn { background: var(--warn-bg); color: var(--warn-ink); }
-/* sheet */
-.sheet-wrap { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 40; display: flex; align-items: flex-end; justify-content: center; }
-.sheet { background: var(--card); width: 100%; max-width: 560px; max-height: 92vh; overflow: auto; border-radius: 14px 14px 0 0; padding: 14px 14px calc(14px + env(safe-area-inset-bottom)); }
-@media (min-width: 600px) { .sheet-wrap { align-items: center; } .sheet { border-radius: 14px; } }
-.sheet h2 { margin: 0 0 12px; font-size: 18px; }
-.sheet .field, .sheet .blk { margin-bottom: 12px; }
-.sheet .foot { display: flex; gap: 8px; margin-top: 6px; }
+.entry .ttl { font-weight: 600; font-size: 16px; }
+.entry .sub { font-size: 14px; color: var(--text2); margin-top: 1px; overflow-wrap: anywhere; letter-spacing: 0; }
+.entry .qtyv { font-weight: 600; font-size: 17px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.entry.struck .ttl, .entry.struck .qtyv { text-decoration: line-through; opacity: .5; }
+.tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 9px; background: var(--fill); color: var(--text2); margin-left: 6px; font-weight: 500; vertical-align: 2px; letter-spacing: 0; }
+.tag.warn { background: var(--orange-bg); color: var(--orange-ink); }
+.day { font-size: 13px; text-transform: uppercase; color: var(--text2); margin: 22px 16px 7px; letter-spacing: .02em; }
+.empty { text-align: center; color: var(--text2); padding: 22px 12px; font-size: 15px; }
+
+/* ---------- buttons, fields ---------- */
+.btn { border: 0; border-radius: 12px; padding: 13px 16px; font-size: 17px; font-weight: 600; background: var(--tint); color: var(--tint-ink); cursor: pointer; }
+.btn.secondary { background: var(--fill); color: var(--tint); }
+.btn.danger { background: var(--fill); color: var(--red); }
+.btn.small { padding: 7px 12px; font-size: 15px; border-radius: 10px; }
+.btn:disabled { opacity: .4; cursor: default; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row > .btn { flex: 1; }
+.field { margin-bottom: 14px; }
+.field label, .lbl { display: block; font-size: 13px; color: var(--text2); margin: 0 4px 6px; letter-spacing: 0; }
+.field input, .field select { width: 100%; min-width: 0; border: 0; border-radius: 12px; background: var(--fill); padding: 12px 14px; font-size: 17px; outline: none; }
+.field input:focus, .field select:focus { box-shadow: 0 0 0 2px var(--tint) inset; }
+.grid2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 0 10px; }
+.hint { font-size: 13px; color: var(--text2); margin: 6px 4px 0; letter-spacing: 0; }
+.err { color: var(--red); font-size: 15px; margin: 4px 4px 10px; }
+.seg { display: flex; background: var(--fill); border-radius: 10px; padding: 2px; }
+.seg button { flex: 1; border: 0; background: transparent; padding: 8px; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; transition: background 200ms, box-shadow 200ms; }
+.seg button[aria-pressed="true"] { background: var(--card); box-shadow: 0 2px 6px rgba(0,0,0,.12); font-weight: 600; }
+.stepper { display: flex; gap: 8px; }
+.stepper input { text-align: center; font-size: 22px; font-weight: 600; }
+.stepper button { width: 52px; flex: none; font-size: 24px; padding: 0; }
+.banner { background: var(--orange-bg); color: var(--orange-ink); border-radius: 14px; padding: 11px 14px; font-size: 15px; margin: 0 0 14px; letter-spacing: 0; }
+
+/* ---------- tables ---------- */
+table.t { width: 100%; border-collapse: collapse; font-size: 15px; letter-spacing: 0; }
+table.t th { text-align: left; font-weight: 500; color: var(--text2); font-size: 13px; padding: 4px 4px 6px; border-bottom: .5px solid var(--sep); }
+table.t td { padding: 9px 4px; border-bottom: .5px solid var(--sep); font-variant-numeric: tabular-nums; }
+table.t tr:last-child td { border-bottom: 0; }
+table.t .n { text-align: right; }
+.key { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 7px; vertical-align: 0; }
+
+/* ---------- tab bar (translucent material) ---------- */
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; display: flex; justify-content: center; background: var(--bar); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); border-top: .5px solid var(--sep); padding-bottom: env(safe-area-inset-bottom); }
+.tabbar .in { display: flex; width: 100%; max-width: 640px; }
+.tabbar button { flex: 1; border: 0; background: none; padding: 7px 0 6px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 10.5px; font-weight: 500; color: var(--text3); cursor: pointer; letter-spacing: .01em; }
+.tabbar svg { width: 25px; height: 25px; }
+.tabbar button[aria-selected="true"] { color: var(--tint); }
+
+/* ---------- sheets ---------- */
+.scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 40; opacity: 0; transition: opacity 320ms ease; }
+.scrim.on { opacity: 1; }
+.sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 41; margin: 0 auto; max-width: 640px; max-height: 92vh; overflow: auto; overscroll-behavior: contain; background: var(--bg); border-radius: 18px 18px 0 0; padding: 0 16px calc(18px + env(safe-area-inset-bottom)); transform: translateY(105%); transition: transform 460ms cubic-bezier(.32,.72,0,1); }
+@media (prefers-color-scheme: dark) { .sheet { background: var(--card); } }
+.sheet.on { transform: translateY(0); }
+.grab { position: sticky; top: 0; z-index: 2; padding: 8px 0 4px; margin: 0 -16px; background: inherit; cursor: grab; touch-action: none; }
+.grab::before { content: ""; display: block; width: 38px; height: 5px; border-radius: 3px; background: var(--fill2); margin: 0 auto; }
+.sheet h2 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin: 8px 4px 14px; }
+.sheet .foot { display: flex; gap: 10px; margin-top: 6px; }
 .sheet .foot .btn { flex: 1; }
-.hint { font-size: 13px; color: var(--muted); margin-top: 4px; }
-/* login */
-#login { max-width: 420px; margin: 0 auto; padding: 30px 16px; }
-#login h1 { text-align: center; color: var(--brand); margin: 0 0 4px; font-size: 24px; }
-.userbtns { display: grid; gap: 8px; margin-top: 18px; }
-.userbtns .btn { padding: 15px; font-size: 18px; }
-#pin { font-size: 28px; letter-spacing: 10px; text-align: center; }
-/* toast */
-#toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: #222; color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 60; max-width: 90vw; text-align: center; }
-#toast.show { opacity: 1; }
-/* charts */
+.choice { display: block; width: 100%; border: 0; background: var(--card); text-align: left; padding: 15px 16px; font-size: 17px; cursor: pointer; position: relative; }
+@media (prefers-color-scheme: dark) { .choice { background: var(--card2); } }
+.choice + .choice::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; border-top: .5px solid var(--sep); }
+.choice:active { background: var(--fill2); }
+.choices { border-radius: 14px; overflow: hidden; margin-bottom: 14px; }
+
+/* ---------- login ---------- */
+#login main { padding-top: calc(env(safe-area-inset-top) + 40px); }
+.logo { width: 64px; height: 64px; border-radius: 16px; display: block; margin: 0 auto 10px; }
+.login-title { text-align: center; font-size: 30px; font-weight: 700; letter-spacing: -0.025em; margin: 0; }
+.login-sub { text-align: center; color: var(--text2); margin: 4px 0 26px; font-size: 15px; letter-spacing: 0; }
+.userlist .choice { display: flex; justify-content: space-between; align-items: center; font-weight: 500; }
+.userlist .choice::after { content: "›"; color: var(--text3); font-size: 24px; line-height: 1; }
+.pindots { display: flex; justify-content: center; gap: 16px; margin: 22px 0 8px; }
+.pindots i { width: 14px; height: 14px; border-radius: 50%; border: 1.5px solid var(--text2); transition: background 120ms, transform 120ms; }
+.pindots i.on { background: var(--text); border-color: var(--text); transform: scale(1.05); }
+.pindots.shake { animation: shake 360ms cubic-bezier(.36,.07,.19,.97); }
+@keyframes shake { 20%,60% { transform: translateX(-9px); } 40%,80% { transform: translateX(9px); } }
+.keypad { display: grid; grid-template-columns: repeat(3, 78px); gap: 16px 26px; justify-content: center; margin-top: 22px; }
+.keypad button { width: 78px; height: 78px; border-radius: 50%; border: 0; background: var(--fill); font-size: 32px; font-weight: 400; cursor: pointer; transition: background 80ms; }
+.keypad button:active { background: var(--fill2); }
+.keypad button.plain { background: transparent; font-size: 17px; }
+
+/* ---------- toast ---------- */
+#toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 76px); transform: translate(-50%, 16px); background: rgba(40,40,42,.94); color: #fff; padding: 11px 16px; border-radius: 14px; font-size: 15px; opacity: 0; transition: opacity 220ms, transform 320ms cubic-bezier(.32,.72,0,1); pointer-events: none; z-index: 60; max-width: calc(100vw - 32px); display: flex; gap: 14px; align-items: center; letter-spacing: 0; -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+#toast.act { pointer-events: auto; }
+#toast button { border: 0; background: none; color: #7ee39a; font-weight: 600; font-size: 15px; padding: 2px 0; cursor: pointer; }
+
+/* ---------- charts ---------- */
 .chart-wrap { position: relative; }
 .chart-wrap svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
-.chart-wrap .axis text { fill: var(--muted); font-size: 11px; }
-.legend { display: flex; gap: 14px; font-size: 13px; color: var(--muted); margin-bottom: 4px; flex-wrap: wrap; }
-.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; }
+.chart-wrap .axis text { fill: var(--text2); font-size: 11px; }
+.legend { display: flex; gap: 14px; font-size: 13px; color: var(--text2); margin-bottom: 6px; flex-wrap: wrap; letter-spacing: 0; }
+.legend i { display: inline-block; width: 11px; height: 11px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; }
 .legend.lines i { height: 3px; width: 14px; vertical-align: 3px; }
-.tip { position: absolute; pointer-events: none; background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.15); white-space: nowrap; z-index: 5; }
-.tip .h { color: var(--muted); margin-bottom: 3px; }
+.tip { position: absolute; pointer-events: none; background: var(--card); border: .5px solid var(--sep); border-radius: 10px; padding: 7px 9px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.18); white-space: nowrap; z-index: 5; letter-spacing: 0; }
+.tip .h { color: var(--text2); margin-bottom: 3px; }
 .tip .r { display: flex; align-items: center; gap: 6px; }
 .tip .r i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
-.filters { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 8px; }
-details.f > summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; }
+.filters { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 0 10px; }
+details.f > summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; align-items: center; }
 details.f > summary::-webkit-details-marker { display: none; }
-details.f > summary::after { content: "▾"; color: var(--muted); }
-details.f[open] > summary::after { content: "▴"; }
-details.f[open] > summary { margin-bottom: 10px; }
-.empty { text-align: center; color: var(--muted); padding: 20px 8px; }
+details.f > summary::after { content: "›"; color: var(--text3); font-size: 22px; transform: rotate(90deg); transition: transform 200ms; }
+details.f[open] > summary::after { transform: rotate(-90deg); }
+details.f[open] > summary { margin-bottom: 12px; }
+
+/* ---------- accessibility ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .sheet { transition: opacity 200ms ease; transform: none; opacity: 0; }
+  .sheet.on { opacity: 1; }
+  .press:active, .op:active { transform: none; }
+  .pindots.shake { animation: none; }
+  #toast { transition: opacity 200ms; transform: translate(-50%, 0); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .tabbar { background: var(--card); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  #toast { background: #28282a; }
+}
+@media (prefers-contrast: more) {
+  .group, .card, .panel { border: 1px solid var(--text2); }
+}
 </style>
 </head>
 <body>
 
-<!-- ============ SETUP NEEDED ============ -->
-<div id="setup" hidden style="max-width:480px;margin:40px auto;padding:16px">
-  <div class="card"><h2>Almost ready</h2><p>This app is not connected to its database yet. Fill in <b>config.js</b> with the Supabase Project URL and key (see README).</p></div>
-</div>
+<div id="setup" hidden><main><div class="card"><h2>Almost ready</h2><p>This app is not connected to its database yet. Fill in <b>config.js</b> with the Supabase Project URL and key (see README).</p></div></main></div>
 
 <!-- ============ LOGIN ============ -->
-<div id="login" hidden>
-  <h1>Sakal Stock</h1>
-  <p class="muted" style="text-align:center;margin:0">Plantain chips stock</p>
+<div id="login" hidden><main>
+  <img class="logo" src="icon-192.png" alt="">
+  <h1 class="login-title">Sakal Stock</h1>
+  <p class="login-sub" id="loginSub">Who's entering?</p>
   <div id="loginUsers">
-    <div class="userbtns" id="userBtns"></div>
+    <div class="choices userlist" id="userBtns"></div>
     <p class="err" id="usersErr" hidden></p>
   </div>
   <div id="loginPin" hidden>
-    <div class="card" style="margin-top:18px">
-      <div class="field">
-        <label for="pin">PIN for <b id="pinName"></b></label>
-        <input id="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="current-password">
-      </div>
-      <p class="err" id="pinErr" hidden></p>
-      <div class="row" style="margin-top:12px">
-        <button class="btn secondary" id="pinBack" type="button">Back</button>
-        <button class="btn" id="pinGo" type="button">Log in</button>
-      </div>
+    <div class="pindots" id="pinDots" aria-hidden="true"></div>
+    <p class="err" id="pinErr" hidden style="text-align:center"></p>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="current-password" aria-label="PIN" style="position:absolute;opacity:0;pointer-events:none;width:1px;height:1px">
+    <div class="keypad" id="keypad"></div>
+    <div class="row" style="max-width:300px;margin:22px auto 0">
+      <button class="btn secondary" id="pinBack" type="button">Back</button>
+      <button class="btn" id="pinGo" type="button" disabled>Log in</button>
     </div>
   </div>
-</div>
+</main></div>
 
 <!-- ============ APP ============ -->
 <div id="app" hidden>
-<header>
-  <div class="hrow">
-    <h1>Sakal Stock</h1>
-    <div class="who"><span class="dot" id="syncDot"></span><span id="whoName"></span></div>
-  </div>
-  <nav role="tablist">
-    <button role="tab" data-tab="stock" aria-selected="true">Stock</button>
-    <button role="tab" data-tab="history" aria-selected="false">History</button>
-    <button role="tab" data-tab="trends" aria-selected="false">Trends</button>
-    <button role="tab" data-tab="more" aria-selected="false">More</button>
-  </nav>
-</header>
 <main>
-  <div class="banner" id="offlineBanner" hidden></div>
-
   <!-- STOCK -->
   <section class="tab" id="tab-stock">
-    <div class="tiles" id="tiles"></div>
-    <div class="actions">
-      <button class="btn" id="btnProd" type="button">+ Production</button>
-      <button class="btn" id="btnOut" type="button">− Take out</button>
-      <button class="btn secondary wide" id="btnCount" type="button">Stock count</button>
+    <h1 class="large">Plantain Chips</h1>
+    <div class="status"><span class="dot" id="syncDot"></span><span id="whoName"></span><span id="syncAgo"></span></div>
+    <div class="banner" id="offlineBanner" hidden></div>
+    <div class="cards" id="cards"></div>
+
+    <div class="panel">
+      <div class="panel-for">Entry for <b id="panelFor">Ripe plantain</b></div>
+      <input class="qty" id="qty" inputmode="numeric" pattern="[0-9]*" placeholder="0" autocomplete="off" aria-label="Number of boxes">
+      <div class="ops">
+        <button class="op add press needs-net" id="btnAdd" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Add</button>
+        <button class="op sub press needs-net" id="btnSub" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14"/></svg>Subtract</button>
+      </div>
+      <div class="rows">
+        <div class="rowf"><label for="eDate">Date</label><input id="eDate" type="date"></div>
+        <div class="rowf"><label for="eBatch">Batch</label><input id="eBatch" inputmode="numeric" autocomplete="off"></div>
+        <div class="rowf"><label for="eNote">Note</label><input id="eNote" autocomplete="off" placeholder="Optional"></div>
+      </div>
+      <p class="hint" id="batchHint"></p>
     </div>
-    <div class="card"><h2>Today</h2><div id="today"></div></div>
-    <div class="card"><h2>Batches in stock</h2><div id="batches"></div></div>
-    <div class="card"><h2>Latest entries</h2><div id="recent"></div>
-      <button class="btn secondary small" type="button" id="seeAll" style="margin-top:6px">See full history</button></div>
+    <button class="link press needs-net" id="btnCount" type="button">Stock count…</button>
+
+    <div class="section-h">Recent</div>
+    <div class="group" id="recent"></div>
+    <button class="link" type="button" id="seeAll">See all history</button>
   </section>
 
   <!-- HISTORY -->
   <section class="tab" id="tab-history" hidden>
+    <h1 class="large">History</h1>
+    <div class="status">Every entry is permanent. Wrong entries are fixed with Undo.</div>
     <details class="card f" id="filterBox">
-      <summary><span>Filter</span><span class="muted small" id="filterSummary" style="margin-left:auto;margin-right:8px">all entries</span></summary>
+      <summary><span>Filter</span><span class="muted small" id="filterSummary" style="margin-left:auto;margin-right:10px;font-weight:400">All entries</span></summary>
       <div class="filters">
         <div class="field"><label for="fProduct">Product</label><select id="fProduct"><option value="">All</option><option value="ripe">Ripe</option><option value="unripe">Unripe</option></select></div>
-        <div class="field"><label for="fKind">Type</label><select id="fKind"><option value="">All</option><option value="production">Production</option><option value="takeout">Take-out</option><option value="count">Stock count</option><option value="reversal">Correction</option></select></div>
+        <div class="field"><label for="fKind">Type</label><select id="fKind"><option value="">All</option><option value="production">Added</option><option value="takeout">Subtracted</option><option value="count">Stock count</option><option value="reversal">Correction</option></select></div>
         <div class="field"><label for="fUser">Person</label><select id="fUser"></select></div>
-        <div class="field"><label for="fBatch">Batch</label><input id="fBatch" autocomplete="off" placeholder="any"></div>
+        <div class="field"><label for="fBatch">Batch</label><input id="fBatch" autocomplete="off" placeholder="Any"></div>
         <div class="field"><label for="fFrom">From</label><input id="fFrom" type="date"></div>
         <div class="field"><label for="fTo">To</label><input id="fTo" type="date"></div>
       </div>
-      <div class="row" style="margin-top:10px"><button class="btn secondary small" id="fClear" type="button">Clear filter</button></div>
+      <button class="btn secondary small" id="fClear" type="button">Clear filter</button>
     </details>
     <div class="card" id="histSum"></div>
-    <div class="card"><div id="histList"></div><button class="btn secondary small" id="histMore" type="button" hidden style="margin-top:8px">Show more</button></div>
+    <div id="histList"></div>
+    <button class="link" id="histMore" type="button" hidden>Show more</button>
+    <div class="section-h">Export</div>
     <div class="card">
-      <h2>Export</h2>
-      <div class="field" style="margin-bottom:8px"><label for="sep">CSV format</label>
+      <div class="field"><label for="sep">CSV format</label>
         <select id="sep"><option value=",">Comma – English Excel / Google Sheets</option><option value=";">Semicolon – German/European Excel</option></select></div>
-      <button class="btn secondary" id="exportBtn" type="button" style="width:100%">Download CSV (filtered entries)</button>
+      <button class="btn secondary" id="exportBtn" type="button" style="width:100%">Download CSV</button>
     </div>
   </section>
 
   <!-- TRENDS -->
   <section class="tab" id="tab-trends" hidden>
-    <div class="card filters">
+    <h1 class="large">Trends</h1>
+    <div class="status">&nbsp;</div>
+    <div class="card filters" style="padding-bottom:0">
       <div class="field"><label for="tPeriod">Period</label>
         <select id="tPeriod"><option value="28">Last 4 weeks</option><option value="84" selected>Last 12 weeks</option><option value="365">Last 12 months</option><option value="year">This year</option><option value="all">All time</option></select></div>
       <div class="field"><label for="tStep">Show per</label>
@@ -225,37 +324,48 @@ details.f[open] > summary { margin-bottom: 10px; }
     </div>
     <div id="trendsEmpty" class="card empty" hidden>No entries in this period yet.</div>
     <div id="trendsBody">
-      <div class="card"><h2>Stock level (boxes)</h2><div class="chart-wrap" id="chStock"></div></div>
-      <div class="card"><h2>Produced (boxes)</h2><div class="chart-wrap" id="chProd"></div></div>
-      <div class="card"><h2>Taken out (boxes)</h2><div class="chart-wrap" id="chOut"></div></div>
-      <div class="card"><h2>Take-outs by reason</h2><div id="tReasons"></div></div>
+      <div class="card"><h2>Stock level</h2><div class="chart-wrap" id="chStock"></div></div>
+      <div class="card"><h2>Added</h2><div class="chart-wrap" id="chProd"></div></div>
+      <div class="card"><h2>Subtracted</h2><div class="chart-wrap" id="chOut"></div></div>
+      <div class="card"><h2>Subtracted by reason</h2><div id="tReasons"></div></div>
       <div class="card"><h2>By person</h2><div id="tPeople"></div></div>
     </div>
   </section>
 
   <!-- MORE -->
   <section class="tab" id="tab-more" hidden>
+    <h1 class="large">More</h1>
+    <div class="status" id="meLine"></div>
     <div class="card">
-      <h2>My account</h2>
-      <p class="small muted" id="meLine" style="margin-top:0"></p>
       <div class="row"><button class="btn secondary" id="changePinBtn" type="button">Change my PIN</button><button class="btn danger" id="logoutBtn" type="button">Log out</button></div>
     </div>
     <div id="adminArea" hidden>
-      <div class="card"><h2>People</h2><div id="userList"></div><button class="btn secondary small" id="addUserBtn" type="button" style="margin-top:8px">+ Add person</button></div>
-      <div class="card"><h2>Low-stock warning</h2>
-        <p class="small muted" style="margin-top:0">Show a warning when stock is at or below this many boxes.</p>
+      <div class="section-h">People</div>
+      <div class="card"><div id="userList"></div><button class="btn secondary small needs-net" id="addUserBtn" type="button" style="margin-top:10px">Add person</button></div>
+      <div class="section-h">Low-stock warning</div>
+      <div class="card">
+        <p class="small muted" style="margin:0 0 12px">Warn when stock is at or below this many boxes.</p>
         <div class="grid2">
           <div class="field"><label for="lowRipe"><span class="key" style="background:var(--ripe)"></span>Ripe</label><input id="lowRipe" inputmode="numeric"></div>
           <div class="field"><label for="lowUnripe"><span class="key" style="background:var(--unripe)"></span>Unripe</label><input id="lowUnripe" inputmode="numeric"></div>
         </div>
-        <button class="btn secondary small" id="saveLow" type="button" style="margin-top:8px">Save</button>
+        <button class="btn secondary small needs-net" id="saveLow" type="button">Save</button>
       </div>
     </div>
-    <div class="card"><h2>Activity log</h2><p class="small muted" style="margin-top:0">People added, PINs changed, settings changed, lockouts. Cannot be edited.</p><div id="eventList"></div></div>
-    <div class="card"><h2>App</h2><p class="small muted" id="syncInfo" style="margin-top:0"></p>
+    <div class="section-h">Activity log</div>
+    <div class="card"><p class="small muted" style="margin:0 0 4px">People added, PINs changed, settings, lockouts. Cannot be edited.</p><div id="eventList"></div></div>
+    <div class="section-h">App</div>
+    <div class="card"><p class="small muted" id="syncInfo" style="margin:0 0 10px"></p>
       <button class="btn secondary small" id="reloadAll" type="button">Reload all data</button></div>
   </section>
 </main>
+
+<nav class="tabbar" role="tablist"><div class="in">
+  <button role="tab" data-tab="stock" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><path d="M3.5 8.5 12 4l8.5 4.5v9L12 22l-8.5-4.5z"/><path d="M3.5 8.5 12 13l8.5-4.5M12 13v9"/></svg>Stock</button>
+  <button role="tab" data-tab="history" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>History</button>
+  <button role="tab" data-tab="trends" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 20v-6M10 20V9M15 20v-8M20 20V5"/></svg>Trends</button>
+  <button role="tab" data-tab="more" aria-selected="false"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>More</button>
+</div></nav>
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
@@ -268,8 +378,10 @@ const CFG = window.SAKAL_CONFIG || {};
 const $ = id => document.getElementById(id);
 const LS_SESSION = "sakalstock.session.v1", LS_CACHE = "sakalstock.cache.v1", LS_PREFS = "sakalstock.prefs.v1";
 const PRODUCTS = { ripe: "Ripe", unripe: "Unripe" };
-const KIND = { production: "Production", takeout: "Take-out", count: "Stock count", reversal: "Correction" };
+const PRODUCT_LONG = { ripe: "Ripe plantain", unripe: "Unripe plantain" };
+const KIND = { production: "Added", takeout: "Subtracted", count: "Stock count", reversal: "Correction" };
 const REASONS = ["sale", "sample", "own use", "damaged", "other"];
+const REDUCED = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 function load(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
 function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
@@ -285,6 +397,7 @@ function h(tag, props, ...kids) {
     if (v === null || v === undefined || v === false) continue;
     if (k === "class") e.className = v;
     else if (k === "style") e.style.cssText = v;
+    else if (k === "html") e.innerHTML = v; // only used with fixed, trusted SVG strings
     else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
     else if (["value", "checked", "disabled", "hidden", "type"].includes(k)) e[k] = v;
     else e.setAttribute(k, v === true ? "" : v);
@@ -293,7 +406,26 @@ function h(tag, props, ...kids) {
   return e;
 }
 let toastTimer;
-function toast(msg, ms) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), ms || 2600); }
+function toast(msg, ms, actionLabel, action) {
+  const t = $("toast"); t.textContent = msg; t.classList.toggle("act", !!action);
+  if (action) t.append(h("button", { type: "button", onclick: () => { hideToast(); action(); } }, actionLabel));
+  t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, ms || 2600);
+}
+function hideToast() { $("toast").classList.remove("show", "act"); }
+const haptic = () => { try { navigator.vibrate && navigator.vibrate(12); } catch (e) {} };
+
+// count a number up/down so the change is visible
+function animateNum(el, from, to) {
+  if (REDUCED || from === to || from === undefined) { el.textContent = nf.format(to); return; }
+  const t0 = performance.now(), dur = 520;
+  const step = now => {
+    const p = Math.min(1, (now - t0) / dur), e = 1 - Math.pow(1 - p, 3);
+    el.textContent = nf.format(Math.round(from + (to - from) * e));
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 
 /* ================= dates ================= */
 const pad = n => String(n).padStart(2, "0");
@@ -392,71 +524,192 @@ function render() {
   if (!session) return;
   const D = derive();
   $("whoName").textContent = session.user.name;
+  updateAgo();
   renderStock(D);
   if (currentTab === "history") renderHistory(D);
   if (currentTab === "trends") renderTrends(D);
   if (currentTab === "more") renderMore(D);
 }
+function updateAgo() {
+  if (!db.synced) { $("syncAgo").textContent = ""; return; }
+  const s = Math.round((Date.now() - new Date(db.synced)) / 1000);
+  $("syncAgo").textContent = "· updated " + (s < 60 ? "just now" : s < 3600 ? Math.round(s / 60) + " min ago" : stamp(db.synced));
+}
 
+const ICON = { production: "+", takeout: "−", count: "=", reversal: "↺" };
 function entryEl(m, D, withAction) {
   const rev = D.reversedBy[m.id];
   const ref = m.ref_id ? D.byId[m.ref_id] : null;
-  let title = KIND[m.kind] + " · " + PRODUCTS[m.product] + " · batch " + m.batch;
-  const sub = [];
+  const sub = ["Batch " + m.batch];
   if (m.kind === "takeout" && m.reason) sub.push(cap(m.reason) + (m.customer ? " – " + m.customer : ""));
   else if (m.customer) sub.push(m.customer);
+  if (m.kind === "reversal" && ref) sub.push("undoes #" + ref.id);
   if (m.note) sub.push(m.note);
-  if (m.kind === "reversal" && ref) sub.unshift("Undoes #" + ref.id + " (" + KIND[ref.kind].toLowerCase() + ")");
-  const meta = "by " + (D.userName[m.user_id] || "?") + " · entered " + stamp(m.logged_at) + " · #" + m.id;
   const tags = [];
-  if (rev) tags.push(h("span", { class: "tag" }, "undone by #" + rev));
+  if (rev) tags.push(h("span", { class: "tag" }, "undone"));
   if (m.group_id && m.kind === "takeout") {
     const parts = db.movements.filter(x => x.group_id === m.group_id && x.kind === "takeout").length;
-    if (parts > 1) tags.push(h("span", { class: "tag" }, "1 of " + parts + " batches"));
+    if (parts > 1) tags.push(h("span", { class: "tag" }, "split over " + parts + " batches"));
   }
   const canUndo = withAction && !rev && m.kind !== "reversal" && !(m.kind === "count" && m.ref_id);
   return h("div", { class: "entry" + (rev ? " struck" : "") },
+    h("div", { class: "ico " + m.product, "aria-hidden": "true" }, ICON[m.kind]),
     h("div", { class: "main" },
-      h("div", { class: "ttl" }, title, tags),
-      sub.length ? h("div", { class: "sub" }, sub.join(" · ")) : null,
-      h("div", { class: "sub" }, meta)),
+      h("div", { class: "ttl" }, KIND[m.kind] + " · " + PRODUCTS[m.product], tags),
+      h("div", { class: "sub" }, sub.join(" · ")),
+      h("div", { class: "sub" }, (D.userName[m.user_id] || "?") + " · " + stamp(m.logged_at) + " · #" + m.id)),
     h("div", null,
-      h("div", { class: "qty " + (m.boxes > 0 ? "pos" : m.boxes < 0 ? "neg" : "") }, signed(m.boxes)),
-      canUndo ? h("button", { class: "btn small secondary needs-net", style: "margin-top:4px", type: "button", disabled: !online, onclick: () => undoSheet(m, D) }, "Undo") : null));
+      h("div", { class: "qtyv " + (m.boxes > 0 ? "pos" : m.boxes < 0 ? "neg" : "") }, signed(m.boxes)),
+      canUndo ? h("button", { class: "btn small secondary needs-net", style: "margin-top:6px", type: "button", disabled: !online, onclick: () => undoSheet(m, D) }, "Undo") : null));
 }
 
+/* ---------- stock page ---------- */
+const shownNum = {};
+const MORE_SVG = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
 function renderStock(D) {
   const low = db.settings || {};
-  const tiles = $("tiles"); tiles.innerHTML = "";
+  const cards = $("cards");
   Object.keys(PRODUCTS).forEach(p => {
-    const n = D.stock[p], isLow = low[p] !== undefined && n <= low[p];
-    tiles.append(h("div", { class: "tile " + p },
-      h("div", { class: "k" }, PRODUCTS[p] + " chips"),
-      h("div", { class: "v" }, nf.format(n), " ", h("span", { class: "u" }, n === 1 ? "box" : "boxes")),
-      isLow ? h("span", { class: "low" }, "⚠ Low stock") : null));
+    let card = cards.querySelector('[data-p="' + p + '"]');
+    if (!card) {
+      card = h("div", { class: "pcard press " + p, "data-p": p, role: "button", tabindex: "0", "aria-pressed": "false",
+        onclick: e => { if (e.target.closest(".pmore")) return; selectProduct(p); },
+        onkeydown: e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectProduct(p); } } },
+        h("span", { class: "pname" }, PRODUCT_LONG[p]),
+        h("button", { class: "pmore", type: "button", "aria-label": PRODUCT_LONG[p] + " details", html: MORE_SVG, onclick: () => productSheet(p) }),
+        h("div", null, h("span", { class: "pnum" }, "0"), h("span", { class: "punit" }, "Boxes")),
+        h("span", { class: "plow", hidden: true }, "⚠︎ Low stock"));
+      cards.append(card);
+    }
+    card.setAttribute("aria-pressed", String(prefs.product === p));
+    animateNum(card.querySelector(".pnum"), shownNum[p], D.stock[p]);
+    shownNum[p] = D.stock[p];
+    card.querySelector(".punit").textContent = D.stock[p] === 1 ? "Box" : "Boxes";
+    card.querySelector(".plow").hidden = !(low[p] !== undefined && D.stock[p] <= low[p]);
   });
-  // today
-  const t = today(), td = $("today"); td.innerHTML = "";
-  const rows = Object.keys(PRODUCTS).map(p => {
-    let prod = 0, out = 0;
-    db.movements.forEach(m => { if (m.product !== p || m.entry_date !== t) return; const k = D.effKind(m); if (k === "production") prod += m.boxes; else if (k === "takeout") out -= m.boxes; });
-    return h("tr", null, h("td", null, h("span", { class: "key", style: "background:var(--" + p + ")" }), PRODUCTS[p]), h("td", { class: "n pos" }, prod ? "+" + nf.format(prod) : "0"), h("td", { class: "n neg" }, out ? "−" + nf.format(out) : "0"));
-  });
-  td.append(h("table", { class: "t" }, h("tr", null, h("th", null, ""), h("th", { class: "n" }, "Produced"), h("th", { class: "n" }, "Taken out")), rows));
-  // batches
-  const bt = $("batches"); bt.innerHTML = "";
-  const list = Object.keys(PRODUCTS).flatMap(p => batchesWithStock(D, p));
-  const odd = D.batches.filter(b => b.boxes < 0);
-  if (!list.length) bt.append(h("div", { class: "empty" }, "No chips in stock."));
-  else bt.append(h("table", { class: "t" },
-    h("tr", null, h("th", null, "Product"), h("th", null, "Batch"), h("th", null, "Produced from"), h("th", { class: "n" }, "Boxes")),
-    list.map(b => h("tr", null, h("td", null, h("span", { class: "key", style: "background:var(--" + b.product + ")" }), PRODUCTS[b.product]), h("td", null, b.batch), h("td", null, b.first ? shortDay(b.first) : "–"), h("td", { class: "n" }, nf.format(b.boxes))))));
-  if (odd.length) bt.append(h("p", { class: "err" }, "Check: " + odd.map(b => PRODUCTS[b.product] + " batch " + b.batch + " shows " + b.boxes).join(", ") + " boxes. Do a stock count."));
-  // recent
+  $("panelFor").textContent = PRODUCT_LONG[prefs.product];
+  updateBatchHint(D);
   const rc = $("recent"); rc.innerHTML = "";
-  const last = db.movements.slice(-6).reverse();
-  if (!last.length) rc.append(h("div", { class: "empty" }, "Nothing entered yet. Start with “+ Production”."));
+  const last = db.movements.slice(-5).reverse();
+  if (!last.length) rc.append(h("div", { class: "empty" }, "Nothing entered yet."));
   last.forEach(m => rc.append(entryEl(m, D, false)));
+}
+function selectProduct(p) {
+  if (prefs.product === p) return;
+  prefs.product = p; save(LS_PREFS, prefs);
+  document.querySelectorAll(".pcard").forEach(c => c.setAttribute("aria-pressed", String(c.dataset.p === p)));
+  $("panelFor").textContent = PRODUCT_LONG[p];
+  updateBatchHint(derive());
+}
+
+/* ---------- entry panel: date + batch ---------- */
+let batchTouched = false;
+function resetEntry() {
+  $("eDate").value = today(); $("eDate").max = today();
+  $("eBatch").value = defaultBatch(today()); batchTouched = false;
+  $("qty").value = ""; $("eNote").value = "";
+}
+function updateBatchHint(D) {
+  const p = prefs.product, hint = $("batchHint");
+  if (!batchTouched) {
+    const old = batchesWithStock(D || derive(), p);
+    hint.textContent = "Add goes to batch " + $("eBatch").value + ". Subtract takes from the oldest batch first" + (old.length ? " (" + old[0].batch + ")." : ".");
+  } else {
+    const b = (D || derive()).batches.find(x => x.product === p && x.batch === $("eBatch").value.trim());
+    hint.textContent = "Using batch " + ($("eBatch").value.trim() || "–") + " for add and subtract" + (b ? " · " + b.boxes + " in stock" : "") + ".";
+  }
+}
+function readQty() {
+  const s = $("qty").value.trim();
+  if (!/^\d+$/.test(s) || +s <= 0) { nudge($("qty")); throw new Error("Enter the number of boxes"); }
+  return +s;
+}
+function nudge(el) {
+  el.focus();
+  if (REDUCED) return;
+  el.animate([{ transform: "translateX(0)" }, { transform: "translateX(-8px)" }, { transform: "translateX(8px)" }, { transform: "translateX(0)" }], { duration: 300, easing: "cubic-bezier(.36,.07,.19,.97)" });
+}
+
+async function doAdd() {
+  let n;
+  try { n = readQty(); } catch (e) { toast(e.message); return; }
+  const p = prefs.product, batch = $("eBatch").value.trim();
+  if (!batch) { nudge($("eBatch")); toast("Enter a batch"); return; }
+  const btn = $("btnAdd"); btn.disabled = true;
+  try {
+    const r = await rpc("add_production", { p_token: session.token, p_product: p, p_boxes: n, p_batch: batch, p_date: $("eDate").value, p_note: $("eNote").value });
+    haptic();
+    $("qty").value = ""; $("eNote").value = "";
+    await sync();
+    toast("Added " + n + " box" + (n === 1 ? "" : "es") + " · " + PRODUCTS[p], 6000, "Undo", () => quickUndo(r.id));
+  } catch (e) { toast(e.message, 4500); }
+  finally { btn.disabled = !online; }
+}
+
+function doSubtract() {
+  let n;
+  try { n = readQty(); } catch (e) { toast(e.message); return; }
+  const D = derive(), p = prefs.product;
+  const batch = batchTouched ? $("eBatch").value.trim() : null;
+  const avail = batch ? ((D.batches.find(b => b.product === p && b.batch === batch) || { boxes: 0 }).boxes) : D.stock[p];
+  if (n > avail) { nudge($("qty")); toast("Only " + avail + " box" + (avail === 1 ? "" : "es") + " of " + PRODUCTS[p].toLowerCase() + (batch ? " batch " + batch : "") + " in stock", 4000); return; }
+  // where the boxes will come from
+  let from;
+  if (batch) from = "From batch " + batch;
+  else {
+    let left = n; const parts = [];
+    for (const b of batchesWithStock(D, p)) { if (left <= 0) break; const t = Math.min(left, b.boxes); parts.push(b.batch + " (" + t + ")"); left -= t; }
+    from = "From batch " + parts.join(", ");
+  }
+  const cust = h("input", { id: "sCust", autocomplete: "off", placeholder: "Optional" });
+  const s = sheet("Subtract " + n + " box" + (n === 1 ? "" : "es"), [
+    h("p", { class: "small muted", style: "margin:-6px 4px 14px" }, PRODUCT_LONG[p] + " · " + from),
+    field("Customer / receiver", cust),
+    h("div", { class: "lbl" }, "Why? Tap to save"),
+    h("div", { class: "choices", role: "group" }, REASONS.map(r => h("button", { class: "choice", type: "button", "data-r": r, onclick: () => save_(r) }, cap(r))))
+  ], null, null);
+  let busy = false;
+  async function save_(reason) {
+    if (busy) return; busy = true;
+    s.err.hidden = true;
+    try {
+      const r = await rpc("take_out", { p_token: session.token, p_product: p, p_boxes: n, p_batch: batch, p_reason: reason, p_customer: cust.value, p_note: $("eNote").value, p_date: $("eDate").value });
+      haptic(); s.close();
+      $("qty").value = ""; $("eNote").value = "";
+      await sync();
+      const first = db.movements.find(m => m.group_id === r.group);
+      toast("Subtracted " + n + " box" + (n === 1 ? "" : "es") + " · " + cap(reason), 6000, first ? "Undo" : null, first ? () => quickUndo(first.id) : null);
+    } catch (e) { s.err.textContent = e.message; s.err.hidden = false; }
+    finally { busy = false; }
+  }
+}
+
+async function quickUndo(id) {
+  try {
+    await rpc("reverse_entry", { p_token: session.token, p_id: id, p_note: "Undone right after entering" });
+    haptic(); await sync(); toast("Undone – a correction was logged");
+  } catch (e) { toast(e.message, 4500); }
+}
+
+function productSheet(p) {
+  const D = derive();
+  const list = batchesWithStock(D, p);
+  const t = today(); let added = 0, out = 0;
+  db.movements.forEach(m => { if (m.product !== p || m.entry_date !== t) return; const k = D.effKind(m); if (k === "production") added += m.boxes; else if (k === "takeout") out -= m.boxes; });
+  const low = (db.settings || {})[p];
+  sheet(PRODUCT_LONG[p], [
+    h("div", { class: "card" },
+      h("table", { class: "t" },
+        h("tr", null, h("td", null, "In stock"), h("td", { class: "n" }, h("b", null, nf.format(D.stock[p]) + " boxes"))),
+        h("tr", null, h("td", null, "Added today"), h("td", { class: "n pos" }, "+" + nf.format(added))),
+        h("tr", null, h("td", null, "Subtracted today"), h("td", { class: "n neg" }, "−" + nf.format(out))),
+        low !== undefined ? h("tr", null, h("td", null, "Low-stock warning at"), h("td", { class: "n" }, low + " boxes")) : null)),
+    h("div", { class: "lbl" }, "Batches in stock (oldest first)"),
+    h("div", { class: "card" }, list.length ? h("table", { class: "t" },
+      h("tr", null, h("th", null, "Batch"), h("th", null, "First added"), h("th", { class: "n" }, "Boxes")),
+      list.map(b => h("tr", null, h("td", null, b.batch), h("td", null, b.first ? shortDay(b.first) : "–"), h("td", { class: "n" }, nf.format(b.boxes))))) : h("div", { class: "empty" }, "None in stock")),
+    D.batches.some(b => b.product === p && b.boxes < 0) ? h("p", { class: "err" }, "A batch shows less than 0 boxes – please do a stock count.") : null
+  ], null, null);
 }
 
 /* ---------- history ---------- */
@@ -475,20 +728,20 @@ function renderHistory(D) {
   us.append(h("option", { value: "" }, "All"), db.users.map(u => h("option", { value: String(u.id) }, u.name)));
   us.value = cur;
   const f = histFilter(); const active = Object.values(f).filter(Boolean).length;
-  $("filterSummary").textContent = active ? active + " filter" + (active > 1 ? "s" : "") + " on" : "all entries";
+  $("filterSummary").textContent = active ? active + " filter" + (active > 1 ? "s" : "") + " on" : "All entries";
   const list = filtered(D);
   let prod = 0, out = 0, adj = 0;
   list.forEach(m => { const k = D.effKind(m); if (k === "production") prod += m.boxes; else if (k === "takeout") out -= m.boxes; else if (k === "count") adj += m.boxes; });
   $("histSum").innerHTML = "";
   $("histSum").append(h("table", { class: "t" },
-    h("tr", null, h("th", null, "Entries"), h("th", { class: "n" }, "Produced"), h("th", { class: "n" }, "Taken out"), h("th", { class: "n" }, "Count adj.")),
+    h("tr", null, h("th", null, "Entries"), h("th", { class: "n" }, "Added"), h("th", { class: "n" }, "Subtracted"), h("th", { class: "n" }, "Count adj.")),
     h("tr", null, h("td", null, nf.format(list.length)), h("td", { class: "n pos" }, nf.format(prod)), h("td", { class: "n neg" }, nf.format(out)), h("td", { class: "n" }, signed(adj)))));
   const box = $("histList"); box.innerHTML = "";
   if (!list.length) { box.append(h("div", { class: "empty" }, "No entries.")); $("histMore").hidden = true; return; }
   const shown = list.slice().sort((a, b) => b.entry_date.localeCompare(a.entry_date) || b.id - a.id).slice(0, histLimit);
   let lastDay = null, group = null;
   shown.forEach(m => {
-    if (m.entry_date !== lastDay) { lastDay = m.entry_date; box.append(h("div", { class: "day" }, niceDay(m.entry_date))); group = h("div"); box.append(group); }
+    if (m.entry_date !== lastDay) { lastDay = m.entry_date; box.append(h("div", { class: "day" }, niceDay(m.entry_date))); group = h("div", { class: "group" }); box.append(group); }
     group.append(entryEl(m, D, true));
   });
   $("histMore").hidden = list.length <= histLimit;
@@ -586,7 +839,7 @@ function renderTrends(D) {
   });
   $("tPeople").innerHTML = "";
   $("tPeople").append(h("table", { class: "t" },
-    h("tr", null, h("th", null, "Person"), h("th", { class: "n" }, "Entries"), h("th", { class: "n" }, "Produced"), h("th", { class: "n" }, "Taken out")),
+    h("tr", null, h("th", null, "Person"), h("th", { class: "n" }, "Entries"), h("th", { class: "n" }, "Added"), h("th", { class: "n" }, "Subtracted")),
     Object.keys(ppl).map(id => h("tr", null, h("td", null, D.userName[id] || "?"), h("td", { class: "n" }, ppl[id].n), h("td", { class: "n" }, nf.format(ppl[id].prod)), h("td", { class: "n" }, nf.format(ppl[id].out))))));
 }
 
@@ -680,23 +933,63 @@ function renderMore(D) {
   setOnline(online);
 }
 
-/* ================= forms (bottom sheets) ================= */
+/* ================= sheets (bottom sheets you can drag down) ================= */
 function sheet(title, body, okLabel, onOk, opts) {
   opts = opts || {};
-  const err = h("p", { class: "err", hidden: true });
-  const ok = h("button", { class: "btn" + (opts.danger ? " danger" : ""), type: "button" }, okLabel);
-  const close = () => wrap.remove();
-  const wrap = h("div", { class: "sheet-wrap", onclick: e => { if (e.target === wrap) close(); } },
-    h("div", { class: "sheet", role: "dialog", "aria-label": title },
-      h("h2", null, title), body, err,
-      h("div", { class: "foot" }, h("button", { class: "btn secondary", type: "button", onclick: close }, "Cancel"), ok)));
-  ok.onclick = async () => {
+  const err = h("p", { class: "err", hidden: true, role: "alert" });
+  const scrim = h("div", { class: "scrim" });
+  const head = h("div", { class: "grab", "aria-hidden": "true" });
+  const ok = okLabel ? h("button", { class: "btn" + (opts.danger ? " danger" : ""), type: "button" }, okLabel) : null;
+  const el = h("div", { class: "sheet", role: "dialog", "aria-modal": "true", "aria-label": title },
+    head, h("h2", null, title), body, err,
+    h("div", { class: "foot" }, h("button", { class: "btn secondary", type: "button", onclick: () => close() }, okLabel ? "Cancel" : "Close"), ok));
+  let closed = false;
+  function close() {
+    if (closed) return; closed = true;
+    el.style.transition = ""; el.style.transform = "";
+    el.classList.remove("on"); scrim.classList.remove("on");
+    setTimeout(() => { el.remove(); scrim.remove(); }, REDUCED ? 220 : 470);
+    document.removeEventListener("keydown", esc);
+  }
+  const esc = e => { if (e.key === "Escape") close(); };
+  document.addEventListener("keydown", esc);
+  scrim.onclick = close;
+  if (ok) ok.onclick = async () => {
     err.hidden = true; ok.disabled = true;
-    try { await onOk(); close(); } catch (e) { err.textContent = e.message; err.hidden = false; }
+    try { await onOk(); haptic(); close(); } catch (e) { err.textContent = e.message; err.hidden = false; }
     finally { ok.disabled = false; }
   };
-  document.body.append(wrap);
-  return { wrap, err };
+  // drag the handle down to close: follows the finger 1:1, decides by projected momentum
+  let y0 = null, hist = [];
+  head.addEventListener("pointerdown", e => {
+    if (REDUCED) return;
+    head.setPointerCapture(e.pointerId); y0 = e.clientY; hist = [{ y: e.clientY, t: e.timeStamp }];
+    el.style.transition = "none";
+  });
+  head.addEventListener("pointermove", e => {
+    if (y0 === null) return;
+    let dy = e.clientY - y0;
+    if (dy < 0) dy = -(Math.abs(dy) * 60) / (60 + Math.abs(dy)); // resist upwards (rubber band)
+    el.style.transform = "translateY(" + dy + "px)";
+    hist.push({ y: e.clientY, t: e.timeStamp }); if (hist.length > 6) hist.shift();
+  });
+  const release = e => {
+    if (y0 === null) return;
+    const dy = e.clientY - y0, a = hist[0], b = hist[hist.length - 1];
+    const v = b && a && b.t > a.t ? (b.y - a.y) / ((b.t - a.t) / 1000) : 0; // px/s
+    const projected = dy + (v / 1000) * 0.998 / (1 - 0.998);
+    y0 = null;
+    el.style.transition = "transform 420ms cubic-bezier(.32,.72,0,1)";
+    if (projected > el.offsetHeight * 0.5) { close(); }
+    else { el.style.transform = ""; setTimeout(() => { if (!closed) el.style.transition = ""; }, 430); }
+  };
+  head.addEventListener("pointerup", release); head.addEventListener("pointercancel", release);
+
+  document.body.append(scrim, el);
+  requestAnimationFrame(() => requestAnimationFrame(() => { scrim.classList.add("on"); el.classList.add("on"); }));
+  const firstInput = el.querySelector("input");
+  if (firstInput && opts.focus !== false && window.matchMedia("(pointer: fine)").matches) setTimeout(() => firstInput.focus(), 300);
+  return { el, err, close };
 }
 function seg(options, value, onChange) {
   const el = h("div", { class: "seg", role: "group" });
@@ -715,75 +1008,6 @@ function readBoxes(inp, label) {
   return parseInt(s, 10);
 }
 function field(label, input, hint) { return h("div", { class: "field" }, h("label", { for: input.id }, label), input, hint ? h("div", { class: "hint" }, hint) : null); }
-
-function productionSheet() {
-  const D = derive();
-  const info = h("div", { class: "hint" });
-  let product = prefs.product;
-  const box = stepper("fBoxes", "");
-  const date = h("input", { id: "fDate", type: "date", value: today(), max: today() });
-  const batch = h("input", { id: "fBatchIn", autocomplete: "off", value: defaultBatch(today()) });
-  let batchTouched = false;
-  batch.addEventListener("input", () => batchTouched = true);
-  date.addEventListener("change", () => { if (!batchTouched) batch.value = defaultBatch(date.value); upd(); });
-  const note = h("input", { id: "fNote", autocomplete: "off", placeholder: "optional" });
-  const upd = () => { const n = parseInt(box.inp.value, 10) || 0; info.textContent = PRODUCTS[product] + " in stock now: " + nf.format(D.stock[product]) + " → after: " + nf.format(D.stock[product] + n); };
-  const pseg = seg(PRODUCTS, product, v => { product = v; upd(); });
-  box.inp.addEventListener("input", upd);
-  sheet("Add production",
-    [h("div", { class: "blk" }, h("span", { class: "lbl" }, "Product"), pseg),
-     h("div", { class: "field" }, h("label", { for: "fBoxes" }, "Boxes produced"), box.el, info),
-     h("div", { class: "grid2" }, field("Date", date), field("Batch", batch, "Year + week, change if needed")),
-     field("Note", note)],
-    "Save production", async () => {
-      const n = readBoxes(box.inp, "the boxes produced"); if (n <= 0) throw new Error("Enter how many boxes were produced");
-      await rpc("add_production", { p_token: session.token, p_product: product, p_boxes: n, p_batch: batch.value.trim(), p_date: date.value, p_note: note.value });
-      prefs.product = product; save(LS_PREFS, prefs);
-      await sync(); toast("Saved: +" + n + " " + PRODUCTS[product].toLowerCase() + " boxes");
-    });
-  setTimeout(() => box.inp.focus(), 50);
-}
-
-function takeOutSheet() {
-  const D = derive();
-  let product = prefs.product, reason = null;
-  const box = stepper("oBoxes", "");
-  const from = h("select", { id: "oFrom" });
-  const info = h("div", { class: "hint" });
-  const fillBatches = () => {
-    from.innerHTML = "";
-    from.append(h("option", { value: "" }, "Oldest first (automatic)"));
-    batchesWithStock(D, product).forEach(b => from.append(h("option", { value: b.batch }, "Batch " + b.batch + " – " + b.boxes + " box" + (b.boxes === 1 ? "" : "es"))));
-  };
-  const upd = () => {
-    const n = parseInt(box.inp.value, 10) || 0;
-    const avail = from.value ? (batchesWithStock(D, product).find(b => b.batch === from.value) || { boxes: 0 }).boxes : D.stock[product];
-    info.textContent = "Available: " + nf.format(avail) + (n ? " → after: " + nf.format(avail - n) : "");
-    info.className = "hint" + (n > avail ? " neg" : "");
-  };
-  const pseg = seg(PRODUCTS, product, v => { product = v; fillBatches(); upd(); });
-  from.addEventListener("change", upd); box.inp.addEventListener("input", upd);
-  const chips = h("div", { class: "chips" }, REASONS.map(r => h("button", { type: "button", "data-r": r, "aria-pressed": "false", onclick: () => { reason = r; [...chips.children].forEach(c => c.setAttribute("aria-pressed", String(c.dataset.r === r))); } }, cap(r))));
-  const cust = h("input", { id: "oCust", autocomplete: "off", placeholder: "optional – who received it" });
-  const date = h("input", { id: "oDate", type: "date", value: today(), max: today() });
-  const note = h("input", { id: "oNote", autocomplete: "off", placeholder: "optional" });
-  fillBatches(); upd();
-  sheet("Take out",
-    [h("div", { class: "blk" }, h("span", { class: "lbl" }, "Product"), pseg),
-     h("div", { class: "field" }, h("label", { for: "oBoxes" }, "Boxes taken out"), box.el, info),
-     field("From batch", from),
-     h("div", { class: "blk" }, h("span", { class: "lbl" }, "Reason"), chips),
-     field("Customer / receiver", cust),
-     h("div", { class: "grid2" }, field("Date", date), field("Note", note))],
-    "Save take-out", async () => {
-      const n = readBoxes(box.inp, "the boxes taken out"); if (n <= 0) throw new Error("Enter how many boxes are taken out");
-      if (!reason) throw new Error("Choose a reason");
-      await rpc("take_out", { p_token: session.token, p_product: product, p_boxes: n, p_batch: from.value || null, p_reason: reason, p_customer: cust.value, p_note: note.value, p_date: date.value });
-      prefs.product = product; save(LS_PREFS, prefs);
-      await sync(); toast("Saved: −" + n + " " + PRODUCTS[product].toLowerCase() + " boxes");
-    });
-  setTimeout(() => box.inp.focus(), 50);
-}
 
 function countSheet() {
   const D = derive();
@@ -829,7 +1053,7 @@ function undoSheet(m, D) {
   const parts = m.group_id && m.kind === "takeout" ? db.movements.filter(x => x.group_id === m.group_id && x.kind === "takeout") : [m];
   const why = h("input", { id: "uWhy", autocomplete: "off", placeholder: "e.g. typed 15 instead of 5" });
   sheet("Undo entry #" + m.id,
-    [h("div", { class: "card", style: "box-shadow:none;border:1px solid var(--line)" }, parts.map(p => entryEl(p, D, false))),
+    [h("div", { class: "card", style: "box-shadow:none;border:.5px solid var(--sep)" }, parts.map(p => entryEl(p, D, false))),
      h("p", { class: "small muted" }, "This adds a correction entry with the opposite amount" + (parts.length > 1 ? " for all " + parts.length + " batches of this take-out" : "") + ". The original stays in the log. If the amount was wrong, enter the right amount again afterwards."),
      field("Why is it wrong? (required)", why)],
     "Undo entry", async () => {
@@ -871,42 +1095,74 @@ async function simpleAction(fn, args, question) {
 }
 
 /* ================= login ================= */
-let loginUser = null;
+let loginUser = null, pinVal = "";
 async function showLogin(msg) {
   $("app").hidden = true; $("login").hidden = false; $("loginPin").hidden = true; $("loginUsers").hidden = false;
+  $("loginSub").textContent = "Who's entering?";
   const box = $("userBtns"); box.innerHTML = "";
   $("usersErr").hidden = !msg; $("usersErr").textContent = msg || "";
   try {
     const users = await rpc("list_users", {});
     if (!users.length) { $("usersErr").textContent = "No people set up yet – run setup.sql in Supabase first."; $("usersErr").hidden = false; }
-    users.forEach(u => box.append(h("button", { class: "btn secondary", type: "button", onclick: () => pickUser(u) }, u.name)));
-  } catch (e) { $("usersErr").textContent = e.message; $("usersErr").hidden = false; box.append(h("button", { class: "btn", type: "button", onclick: () => showLogin() }, "Try again")); }
+    users.forEach(u => box.append(h("button", { class: "choice", type: "button", onclick: () => pickUser(u) }, u.name)));
+  } catch (e) { $("usersErr").textContent = e.message; $("usersErr").hidden = false; box.append(h("button", { class: "choice", type: "button", onclick: () => showLogin() }, "Try again")); }
 }
 function pickUser(u) {
-  loginUser = u; $("pinName").textContent = u.name; $("pin").value = ""; $("pinErr").hidden = true;
-  $("loginUsers").hidden = true; $("loginPin").hidden = false; setTimeout(() => $("pin").focus(), 50);
+  loginUser = u; pinVal = ""; drawPin(); $("pinErr").hidden = true;
+  $("loginSub").textContent = "Enter PIN for " + u.name;
+  $("loginUsers").hidden = true; $("loginPin").hidden = false;
 }
+function drawPin() {
+  const d = $("pinDots"); d.innerHTML = "";
+  for (let i = 0; i < Math.max(4, pinVal.length); i++) d.append(h("i", { class: i < pinVal.length ? "on" : "" }));
+  $("pin").value = pinVal;
+  $("pinGo").disabled = pinVal.length < 4;
+}
+function pinKey(k) {
+  if ($("loginPin").hidden) return;
+  if (k === "del") pinVal = pinVal.slice(0, -1);
+  else if (/^\d$/.test(k) && pinVal.length < 6) pinVal += k;
+  $("pinErr").hidden = true; drawPin();
+}
+(function buildKeypad() {
+  const kp = $("keypad");
+  ["1","2","3","4","5","6","7","8","9","","0","del"].forEach(k => {
+    if (!k) { kp.append(h("span")); return; }
+    kp.append(h("button", { type: "button", class: k === "del" ? "plain" : "", "aria-label": k === "del" ? "Delete" : k, "data-k": k,
+      onpointerdown: e => { e.preventDefault(); pinKey(k); }, onkeydown: e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pinKey(k); } } }, k === "del" ? "⌫" : k));
+  });
+})();
+document.addEventListener("keydown", e => {
+  if ($("login").hidden || $("loginPin").hidden) return;
+  if (/^\d$/.test(e.key)) pinKey(e.key);
+  else if (e.key === "Backspace") pinKey("del");
+  else if (e.key === "Enter" && pinVal.length >= 4) doLogin();
+});
+$("pin").addEventListener("input", () => { pinVal = $("pin").value.replace(/\D/g, "").slice(0, 6); drawPin(); });
 async function doLogin() {
   const btn = $("pinGo"); btn.disabled = true; $("pinErr").hidden = true;
   try {
-    const r = await rpc("login", { p_user_id: loginUser.id, p_pin: $("pin").value });
+    const r = await rpc("login", { p_user_id: loginUser.id, p_pin: pinVal });
     if (!r.ok) throw new Error(r.error);
     session = { token: r.token, user: r.user }; save(LS_SESSION, session);
-    if (db.me && db.me.id !== r.user.id) { /* different person on this phone – keep shared data, it's the same stock */ }
-    startApp();
-  } catch (e) { $("pinErr").textContent = e.message; $("pinErr").hidden = false; $("pin").value = ""; }
-  finally { btn.disabled = false; }
+    haptic(); startApp();
+  } catch (e) {
+    $("pinErr").textContent = e.message; $("pinErr").hidden = false;
+    const d = $("pinDots"); d.classList.remove("shake"); void d.offsetWidth; d.classList.add("shake");
+    try { navigator.vibrate && navigator.vibrate([30, 40, 30]); } catch (x) {}
+    pinVal = ""; drawPin();
+  }
 }
 function endSession(msg) {
   session = null; localStorage.removeItem(LS_SESSION);
-  document.querySelectorAll(".sheet-wrap").forEach(w => w.remove());
+  document.querySelectorAll(".sheet, .scrim").forEach(w => w.remove());
   showLogin(msg);
 }
 
 /* ================= start ================= */
 function showTab(name) {
   currentTab = name;
-  document.querySelectorAll("nav button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+  document.querySelectorAll(".tabbar button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
   document.querySelectorAll(".tab").forEach(s => s.hidden = s.id !== "tab-" + name);
   window.scrollTo(0, 0);
   render();
@@ -914,14 +1170,19 @@ function showTab(name) {
 let pollTimer;
 function startApp() {
   $("login").hidden = true; $("app").hidden = false;
+  resetEntry();
   render(); sync();
   clearInterval(pollTimer);
-  pollTimer = setInterval(() => { if (document.visibilityState === "visible") sync(); }, 30000);
+  pollTimer = setInterval(() => { if (document.visibilityState === "visible") sync(); else updateAgo(); }, 30000);
 }
 
-document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
-$("btnProd").classList.add("needs-net"); $("btnOut").classList.add("needs-net"); $("btnCount").classList.add("needs-net");
-$("btnProd").onclick = productionSheet; $("btnOut").onclick = takeOutSheet; $("btnCount").onclick = countSheet;
+document.querySelectorAll(".tabbar button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+$("btnAdd").onclick = doAdd;
+$("btnSub").onclick = doSubtract;
+$("btnCount").onclick = countSheet;
+$("qty").addEventListener("keydown", e => { if (e.key === "Enter") doAdd(); });
+$("eDate").addEventListener("change", () => { if (!$("eDate").value) $("eDate").value = today(); if (!batchTouched) $("eBatch").value = defaultBatch($("eDate").value); updateBatchHint(); });
+$("eBatch").addEventListener("input", () => { batchTouched = $("eBatch").value.trim() !== defaultBatch($("eDate").value); updateBatchHint(); });
 $("seeAll").onclick = () => showTab("history");
 ["fProduct", "fKind", "fUser", "fBatch", "fFrom", "fTo"].forEach(id => $(id).addEventListener("input", () => { histLimit = 80; render(); }));
 $("fClear").onclick = () => { ["fProduct", "fKind", "fUser", "fBatch", "fFrom", "fTo"].forEach(id => $(id).value = ""); render(); };
@@ -932,8 +1193,7 @@ $("exportBtn").onclick = exportCSV;
 $("tPeriod").onchange = render; $("tStep").onchange = render;
 $("changePinBtn").onclick = changePinSheet;
 $("logoutBtn").onclick = async () => { if (!confirm("Log out?")) return; try { await rpc("logout", { p_token: session.token }); } catch (e) {} endSession(); };
-$("addUserBtn").classList.add("needs-net"); $("addUserBtn").onclick = addUserSheet;
-$("saveLow").classList.add("needs-net");
+$("addUserBtn").onclick = addUserSheet;
 $("saveLow").onclick = async () => {
   try {
     for (const [p, id] of [["ripe", "lowRipe"], ["unripe", "lowUnripe"]]) {
@@ -945,11 +1205,10 @@ $("saveLow").onclick = async () => {
 };
 $("reloadAll").onclick = async () => { await sync(true); toast("All data reloaded"); };
 $("pinGo").onclick = doLogin;
-$("pin").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
 $("pinBack").onclick = () => showLogin();
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && session) sync(); });
 window.addEventListener("online", () => session && sync());
-let rT; window.addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(render, 150); });
+let rT; window.addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(() => { if (currentTab === "trends") render(); }, 150); });
 
 if (!CFG.url || !CFG.key) { $("setup").hidden = false; }
 else if (session) startApp();

@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sakal Stock</title>
+<meta name="theme-color" content="#1f6b2c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sakal Stock">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f3f4f1; --card: #fff; --text: #1b1b1a; --muted: #5d5c58; --line: #dddcd6; --input-bg: #fff;
+  --brand: #1f6b2c; --brand-ink: #fff; --good: #1a7f37; --bad: #c62828;
+  --warn-bg: #fff4d6; --warn-ink: #6b4b00; --grid: #e7e6e1;
+  --ripe: #eb6834; --unripe: #2a78d6;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --bg: #121211; --card: #1d1d1b; --text: #f0efec; --muted: #b4b3aa; --line: #3a3a37; --input-bg: #262624;
+    --brand: #3f9a4f; --good: #5cc46e; --bad: #ff6b6b; --warn-bg: #3a2f10; --warn-ink: #ffd98a; --grid: #2c2c2a;
+    --ripe: #d95926; --unripe: #3987e5;
+  }
+}
+* { box-sizing: border-box; }
+body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding-bottom: 40px; }
+header { background: var(--brand); color: var(--brand-ink); padding: 10px 12px 0; position: sticky; top: 0; z-index: 10; }
+.hrow { display: flex; justify-content: space-between; align-items: center; max-width: 720px; margin: 0 auto 6px; gap: 8px; }
+.hrow h1 { font-size: 18px; margin: 0; }
+.who { font-size: 13px; opacity: .9; display: flex; align-items: center; gap: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #9be59b; display: inline-block; }
+.dot.off { background: #ffb4a8; }
+nav { display: flex; max-width: 720px; margin: 0 auto; }
+nav button { flex: 1; background: transparent; color: var(--brand-ink); border: 0; padding: 10px 2px; font-size: 15px; border-bottom: 3px solid transparent; opacity: .8; cursor: pointer; }
+nav button[aria-selected="true"] { border-bottom-color: #fff; opacity: 1; font-weight: 600; }
+main { max-width: 720px; margin: 0 auto; padding: 10px; }
+.tab[hidden], [hidden] { display: none !important; }
+.card { background: var(--card); border-radius: 10px; padding: 12px; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.card h2 { font-size: 15px; margin: 0 0 8px; }
+.muted { color: var(--muted); } .small { font-size: 13px; }
+.pos { color: var(--good); } .neg { color: var(--bad); }
+.grid2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 8px 10px; }
+.full { grid-column: 1 / -1; }
+.field label, .lbl { display: block; font-size: 13px; color: var(--muted); margin-bottom: 3px; }
+.field input, .field select, .field textarea { width: 100%; min-width: 0; padding: 9px 8px; font-size: 16px; border: 1px solid var(--line); border-radius: 6px; background: var(--input-bg); color: var(--text); font-family: inherit; }
+.btn { padding: 11px 12px; font-size: 16px; border-radius: 8px; border: 0; background: var(--brand); color: var(--brand-ink); cursor: pointer; font-weight: 600; font-family: inherit; }
+.btn.secondary { background: transparent; color: var(--text); border: 1px solid var(--line); font-weight: 500; }
+.btn.danger { background: transparent; color: var(--bad); border: 1px solid var(--line); }
+.btn.small { padding: 6px 10px; font-size: 14px; }
+.btn:disabled { opacity: .5; cursor: default; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.row > .btn { flex: 1; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { flex: 1; padding: 10px; border: 0; background: var(--input-bg); color: var(--text); font-size: 15px; cursor: pointer; font-family: inherit; }
+.seg button + button { border-left: 1px solid var(--line); }
+.seg button[aria-pressed="true"] { background: var(--brand); color: var(--brand-ink); font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { padding: 7px 12px; border-radius: 16px; border: 1px solid var(--line); background: var(--input-bg); color: var(--text); font-size: 14px; cursor: pointer; }
+.chips button[aria-pressed="true"] { background: var(--brand); color: var(--brand-ink); border-color: var(--brand); }
+.stepper { display: flex; gap: 6px; }
+.stepper input { text-align: center; font-size: 20px; font-weight: 600; }
+.stepper button { width: 48px; flex: none; font-size: 22px; padding: 0; }
+.err { color: var(--bad); font-size: 14px; margin-top: 8px; }
+.banner { background: var(--warn-bg); color: var(--warn-ink); border-radius: 8px; padding: 8px 10px; font-size: 14px; margin-bottom: 10px; }
+/* stock */
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.tile { background: var(--card); border-radius: 10px; padding: 12px; box-shadow: 0 1px 3px rgba(0,0,0,.08); border-top: 4px solid var(--line); }
+.tile.ripe { border-top-color: var(--ripe); } .tile.unripe { border-top-color: var(--unripe); }
+.tile .k { font-size: 14px; color: var(--muted); }
+.tile .v { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.15; margin-top: 2px; }
+.tile .u { font-size: 14px; font-weight: 500; color: var(--muted); }
+.tile .low { display: inline-block; margin-top: 4px; font-size: 12px; padding: 2px 7px; border-radius: 10px; background: var(--warn-bg); color: var(--warn-ink); font-weight: 600; }
+.actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.actions .btn.wide { grid-column: 1 / -1; }
+table.t { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.t th { text-align: left; font-weight: 600; color: var(--muted); font-size: 12px; padding: 4px 4px; border-bottom: 1px solid var(--line); }
+table.t td { padding: 7px 4px; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+table.t td.n, table.t th.n { text-align: right; }
+.key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+/* log entries */
+.day { font-size: 13px; font-weight: 700; color: var(--muted); margin: 12px 2px 4px; }
+.entry { display: flex; gap: 10px; padding: 9px 0; border-top: 1px solid var(--line); }
+.entry:first-child { border-top: 0; }
+.entry .main { flex: 1; min-width: 0; }
+.entry .ttl { font-weight: 600; }
+.entry .sub { font-size: 13px; color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
+.entry .qty { font-weight: 700; font-size: 18px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.entry.struck .ttl, .entry.struck .qty { text-decoration: line-through; opacity: .6; }
+.tag { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 9px; background: var(--line); color: var(--text); margin-left: 4px; font-weight: 500; vertical-align: 1px; }
+.tag.warn { background: var(--warn-bg); color: var(--warn-ink); }
+/* sheet */
+.sheet-wrap { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 40; display: flex; align-items: flex-end; justify-content: center; }
+.sheet { background: var(--card); width: 100%; max-width: 560px; max-height: 92vh; overflow: auto; border-radius: 14px 14px 0 0; padding: 14px 14px calc(14px + env(safe-area-inset-bottom)); }
+@media (min-width: 600px) { .sheet-wrap { align-items: center; } .sheet { border-radius: 14px; } }
+.sheet h2 { margin: 0 0 12px; font-size: 18px; }
+.sheet .field, .sheet .blk { margin-bottom: 12px; }
+.sheet .foot { display: flex; gap: 8px; margin-top: 6px; }
+.sheet .foot .btn { flex: 1; }
+.hint { font-size: 13px; color: var(--muted); margin-top: 4px; }
+/* login */
+#login { max-width: 420px; margin: 0 auto; padding: 30px 16px; }
+#login h1 { text-align: center; color: var(--brand); margin: 0 0 4px; font-size: 24px; }
+.userbtns { display: grid; gap: 8px; margin-top: 18px; }
+.userbtns .btn { padding: 15px; font-size: 18px; }
+#pin { font-size: 28px; letter-spacing: 10px; text-align: center; }
+/* toast */
+#toast { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); background: #222; color: #fff; padding: 10px 16px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 60; max-width: 90vw; text-align: center; }
+#toast.show { opacity: 1; }
+/* charts */
+.chart-wrap { position: relative; }
+.chart-wrap svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
+.chart-wrap .axis text { fill: var(--muted); font-size: 11px; }
+.legend { display: flex; gap: 14px; font-size: 13px; color: var(--muted); margin-bottom: 4px; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 5px; }
+.legend.lines i { height: 3px; width: 14px; vertical-align: 3px; }
+.tip { position: absolute; pointer-events: none; background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.15); white-space: nowrap; z-index: 5; }
+.tip .h { color: var(--muted); margin-bottom: 3px; }
+.tip .r { display: flex; align-items: center; gap: 6px; }
+.tip .r i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.filters { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 8px; }
+details.f > summary { cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; }
+details.f > summary::-webkit-details-marker { display: none; }
+details.f > summary::after { content: "▾"; color: var(--muted); }
+details.f[open] > summary::after { content: "▴"; }
+details.f[open] > summary { margin-bottom: 10px; }
+.empty { text-align: center; color: var(--muted); padding: 20px 8px; }
+</style>
+</head>
+<body>
+
+<!-- ============ SETUP NEEDED ============ -->
+<div id="setup" hidden style="max-width:480px;margin:40px auto;padding:16px">
+  <div class="card"><h2>Almost ready</h2><p>This app is not connected to its database yet. Fill in <b>config.js</b> with the Supabase Project URL and key (see README).</p></div>
+</div>
+
+<!-- ============ LOGIN ============ -->
+<div id="login" hidden>
+  <h1>Sakal Stock</h1>
+  <p class="muted" style="text-align:center;margin:0">Plantain chips stock</p>
+  <div id="loginUsers">
+    <div class="userbtns" id="userBtns"></div>
+    <p class="err" id="usersErr" hidden></p>
+  </div>
+  <div id="loginPin" hidden>
+    <div class="card" style="margin-top:18px">
+      <div class="field">
+        <label for="pin">PIN for <b id="pinName"></b></label>
+        <input id="pin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="current-password">
+      </div>
+      <p class="err" id="pinErr" hidden></p>
+      <div class="row" style="margin-top:12px">
+        <button class="btn secondary" id="pinBack" type="button">Back</button>
+        <button class="btn" id="pinGo" type="button">Log in</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" hidden>
+<header>
+  <div class="hrow">
+    <h1>Sakal Stock</h1>
+    <div class="who"><span class="dot" id="syncDot"></span><span id="whoName"></span></div>
+  </div>
+  <nav role="tablist">
+    <button role="tab" data-tab="stock" aria-selected="true">Stock</button>
+    <button role="tab" data-tab="history" aria-selected="false">History</button>
+    <button role="tab" data-tab="trends" aria-selected="false">Trends</button>
+    <button role="tab" data-tab="more" aria-selected="false">More</button>
+  </nav>
+</header>
+<main>
+  <div class="banner" id="offlineBanner" hidden></div>
+
+  <!-- STOCK -->
+  <section class="tab" id="tab-stock">
+    <div class="tiles" id="tiles"></div>
+    <div class="actions">
+      <button class="btn" id="btnProd" type="button">+ Production</button>
+      <button class="btn" id="btnOut" type="button">− Take out</button>
+      <button class="btn secondary wide" id="btnCount" type="button">Stock count</button>
+    </div>
+    <div class="card"><h2>Today</h2><div id="today"></div></div>
+    <div class="card"><h2>Batches in stock</h2><div id="batches"></div></div>
+    <div class="card"><h2>Latest entries</h2><div id="recent"></div>
+      <button class="btn secondary small" type="button" id="seeAll" style="margin-top:6px">See full history</button></div>
+  </section>
+
+  <!-- HISTORY -->
+  <section class="tab" id="tab-history" hidden>
+    <details class="card f" id="filterBox">
+      <summary><span>Filter</span><span class="muted small" id="filterSummary" style="margin-left:auto;margin-right:8px">all entries</span></summary>
+      <div class="filters">
+        <div class="field"><label for="fProduct">Product</label><select id="fProduct"><option value="">All</option><option value="ripe">Ripe</option><option value="unripe">Unripe</option></select></div>
+        <div class="field"><label for="fKind">Type</label><select id="fKind"><option value="">All</option><option value="production">Production</option><option value="takeout">Take-out</option><option value="count">Stock count</option><option value="reversal">Correction</option></select></div>
+        <div class="field"><label for="fUser">Person</label><select id="fUser"></select></div>
+        <div class="field"><label for="fBatch">Batch</label><input id="fBatch" autocomplete="off" placeholder="any"></div>
+        <div class="field"><label for="fFrom">From</label><input id="fFrom" type="date"></div>
+        <div class="field"><label for="fTo">To</label><input id="fTo" type="date"></div>
+      </div>
+      <div class="row" style="margin-top:10px"><button class="btn secondary small" id="fClear" type="button">Clear filter</button></div>
+    </details>
+    <div class="card" id="histSum"></div>
+    <div class="card"><div id="histList"></div><button class="btn secondary small" id="histMore" type="button" hidden style="margin-top:8px">Show more</button></div>
+    <div class="card">
+      <h2>Export</h2>
+      <div class="field" style="margin-bottom:8px"><label for="sep">CSV format</label>
+        <select id="sep"><option value=",">Comma – English Excel / Google Sheets</option><option value=";">Semicolon – German/European Excel</option></select></div>
+      <button class="btn secondary" id="exportBtn" type="button" style="width:100%">Download CSV (filtered entries)</button>
+    </div>
+  </section>
+
+  <!-- TRENDS -->
+  <section class="tab" id="tab-trends" hidden>
+    <div class="card filters">
+      <div class="field"><label for="tPeriod">Period</label>
+        <select id="tPeriod"><option value="28">Last 4 weeks</option><option value="84" selected>Last 12 weeks</option><option value="365">Last 12 months</option><option value="year">This year</option><option value="all">All time</option></select></div>
+      <div class="field"><label for="tStep">Show per</label>
+        <select id="tStep"><option value="day">Day</option><option value="week" selected>Week</option><option value="month">Month</option></select></div>
+    </div>
+    <div id="trendsEmpty" class="card empty" hidden>No entries in this period yet.</div>
+    <div id="trendsBody">
+      <div class="card"><h2>Stock level (boxes)</h2><div class="chart-wrap" id="chStock"></div></div>
+      <div class="card"><h2>Produced (boxes)</h2><div class="chart-wrap" id="chProd"></div></div>
+      <div class="card"><h2>Taken out (boxes)</h2><div class="chart-wrap" id="chOut"></div></div>
+      <div class="card"><h2>Take-outs by reason</h2><div id="tReasons"></div></div>
+      <div class="card"><h2>By person</h2><div id="tPeople"></div></div>
+    </div>
+  </section>
+
+  <!-- MORE -->
+  <section class="tab" id="tab-more" hidden>
+    <div class="card">
+      <h2>My account</h2>
+      <p class="small muted" id="meLine" style="margin-top:0"></p>
+      <div class="row"><button class="btn secondary" id="changePinBtn" type="button">Change my PIN</button><button class="btn danger" id="logoutBtn" type="button">Log out</button></div>
+    </div>
+    <div id="adminArea" hidden>
+      <div class="card"><h2>People</h2><div id="userList"></div><button class="btn secondary small" id="addUserBtn" type="button" style="margin-top:8px">+ Add person</button></div>
+      <div class="card"><h2>Low-stock warning</h2>
+        <p class="small muted" style="margin-top:0">Show a warning when stock is at or below this many boxes.</p>
+        <div class="grid2">
+          <div class="field"><label for="lowRipe"><span class="key" style="background:var(--ripe)"></span>Ripe</label><input id="lowRipe" inputmode="numeric"></div>
+          <div class="field"><label for="lowUnripe"><span class="key" style="background:var(--unripe)"></span>Unripe</label><input id="lowUnripe" inputmode="numeric"></div>
+        </div>
+        <button class="btn secondary small" id="saveLow" type="button" style="margin-top:8px">Save</button>
+      </div>
+    </div>
+    <div class="card"><h2>Activity log</h2><p class="small muted" style="margin-top:0">People added, PINs changed, settings changed, lockouts. Cannot be edited.</p><div id="eventList"></div></div>
+    <div class="card"><h2>App</h2><p class="small muted" id="syncInfo" style="margin-top:0"></p>
+      <button class="btn secondary small" id="reloadAll" type="button">Reload all data</button></div>
+  </section>
+</main>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="config.js"></script>
+<script>
+"use strict";
+/* ================= basics ================= */
+const CFG = window.SAKAL_CONFIG || {};
+const $ = id => document.getElementById(id);
+const LS_SESSION = "sakalstock.session.v1", LS_CACHE = "sakalstock.cache.v1", LS_PREFS = "sakalstock.prefs.v1";
+const PRODUCTS = { ripe: "Ripe", unripe: "Unripe" };
+const KIND = { production: "Production", takeout: "Take-out", count: "Stock count", reversal: "Correction" };
+const REASONS = ["sale", "sample", "own use", "damaged", "other"];
+const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+function load(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+function save(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+let session = load(LS_SESSION, null);
+let prefs = Object.assign({ product: "ripe", sep: null }, load(LS_PREFS, {}));
+let db = load(LS_CACHE, null) || emptyDb();
+function emptyDb() { return { me: null, users: [], settings: {}, movements: [], events: [], synced: null }; }
+
+function h(tag, props, ...kids) {
+  const e = document.createElement(tag);
+  if (props) for (const k in props) {
+    const v = props[k];
+    if (v === null || v === undefined || v === false) continue;
+    if (k === "class") e.className = v;
+    else if (k === "style") e.style.cssText = v;
+    else if (k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else if (["value", "checked", "disabled", "hidden", "type"].includes(k)) e[k] = v;
+    else e.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat()) if (c !== null && c !== undefined && c !== false) e.append(c instanceof Node ? c : String(c));
+  return e;
+}
+let toastTimer;
+function toast(msg, ms) { const t = $("toast"); t.textContent = msg; t.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), ms || 2600); }
+
+/* ================= dates ================= */
+const pad = n => String(n).padStart(2, "0");
+const isoOf = d => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+const today = () => isoOf(new Date());
+function fromISO(s) { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s || ""); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
+function isoWeek(d) {
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day);
+  const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  return { week: Math.ceil(((t - y0) / 86400000 + 1) / 7), year: t.getUTCFullYear() };
+}
+function defaultBatch(dateStr) { const w = isoWeek(fromISO(dateStr) || new Date()); return String(w.year).slice(-2) + pad(w.week); }
+const niceDay = s => { const d = fromISO(s); return d ? d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" }) : s; };
+const shortDay = s => { const d = fromISO(s); return d ? d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) : s; };
+const stamp = s => { const d = new Date(s); return isNaN(d) ? "" : d.toLocaleDateString("en-GB", { day: "numeric", month: "short" }) + ", " + d.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }); };
+const nf = new Intl.NumberFormat("en-US");
+const signed = n => (n > 0 ? "+" : n < 0 ? "−" : "±") + nf.format(Math.abs(n));
+
+/* ================= server ================= */
+async function rpc(fn, args) {
+  let res;
+  const headers = { "Content-Type": "application/json", "apikey": CFG.key };
+  if ((CFG.key || "").split(".").length === 3) headers.Authorization = "Bearer " + CFG.key; // older JWT-style key
+  try {
+    res = await fetch(CFG.url.replace(/\/+$/, "") + "/rest/v1/rpc/" + fn, { method: "POST", headers, body: JSON.stringify(args || {}) });
+  } catch (e) { setOnline(false); throw new Error("No internet connection – nothing was saved."); }
+  setOnline(true);
+  const txt = await res.text(); let data; try { data = JSON.parse(txt); } catch (e) { data = txt; }
+  if (!res.ok) {
+    const msg = (data && data.message) || ("Server error " + res.status);
+    if (msg.includes("NOT_LOGGED_IN")) { endSession("Please log in again."); throw new Error("Please log in again."); }
+    throw new Error(msg);
+  }
+  return data;
+}
+let online = true;
+function setOnline(v) {
+  online = v; $("syncDot").classList.toggle("off", !v);
+  const b = $("offlineBanner");
+  b.hidden = v;
+  if (!v) b.textContent = "No connection. Showing data from " + (db.synced ? stamp(db.synced) : "earlier") + ". You can't add entries until you're back online.";
+  document.querySelectorAll(".needs-net").forEach(x => x.disabled = !v);
+}
+
+let syncing = null;
+async function sync(full) {
+  if (!session) return;
+  if (syncing) return syncing;
+  syncing = (async () => {
+    try {
+      if (full) db = emptyDb();
+      const lastM = db.movements.length ? db.movements[db.movements.length - 1].id : 0;
+      const lastE = db.events.length ? db.events[db.events.length - 1].id : 0;
+      const s = await rpc("get_state", { p_token: session.token, p_after_move: lastM, p_after_event: lastE });
+      db.me = s.me; db.users = s.users; db.settings = s.settings;
+      db.movements = db.movements.concat(s.movements);
+      db.events = db.events.concat(s.events);
+      db.synced = new Date().toISOString();
+      save(LS_CACHE, db);
+      session.user = s.me; save(LS_SESSION, session);
+      render();
+    } catch (e) {
+      if (online) toast(e.message, 4000);
+    } finally { syncing = null; }
+  })();
+  return syncing;
+}
+
+/* ================= derived data ================= */
+function derive() {
+  const userName = {}; db.users.forEach(u => userName[u.id] = u.name);
+  const byId = {}; db.movements.forEach(m => byId[m.id] = m);
+  const reversedBy = {}; db.movements.forEach(m => { if (m.ref_id) reversedBy[m.ref_id] = m.id; });
+  const stock = { ripe: 0, unripe: 0 };
+  const batch = {}; // key product|batch
+  db.movements.forEach(m => {
+    stock[m.product] += m.boxes;
+    const k = m.product + "|" + m.batch;
+    const b = batch[k] || (batch[k] = { product: m.product, batch: m.batch, boxes: 0, first: null, firstId: m.id });
+    b.boxes += m.boxes;
+    if (m.kind === "production" && (!b.first || m.entry_date < b.first)) b.first = m.entry_date;
+  });
+  // effective kind: a correction counts as the kind it corrects (for totals)
+  const effKind = m => m.kind === "reversal" && byId[m.ref_id] ? byId[m.ref_id].kind : m.kind;
+  return { userName, byId, reversedBy, stock, batches: Object.values(batch), effKind };
+}
+function batchesWithStock(D, product) {
+  return D.batches.filter(b => b.product === product && b.boxes > 0)
+    .sort((a, b) => (a.first || "9999").localeCompare(b.first || "9999") || a.firstId - b.firstId);
+}
+
+/* ================= render ================= */
+let currentTab = "stock";
+function render() {
+  if (!session) return;
+  const D = derive();
+  $("whoName").textContent = session.user.name;
+  renderStock(D);
+  if (currentTab === "history") renderHistory(D);
+  if (currentTab === "trends") renderTrends(D);
+  if (currentTab === "more") renderMore(D);
+}
+
+function entryEl(m, D, withAction) {
+  const rev = D.reversedBy[m.id];
+  const ref = m.ref_id ? D.byId[m.ref_id] : null;
+  let title = KIND[m.kind] + " · " + PRODUCTS[m.product] + " · batch " + m.batch;
+  const sub = [];
+  if (m.kind === "takeout" && m.reason) sub.push(cap(m.reason) + (m.customer ? " – " + m.customer : ""));
+  else if (m.customer) sub.push(m.customer);
+  if (m.note) sub.push(m.note);
+  if (m.kind === "reversal" && ref) sub.unshift("Undoes #" + ref.id + " (" + KIND[ref.kind].toLowerCase() + ")");
+  const meta = "by " + (D.userName[m.user_id] || "?") + " · entered " + stamp(m.logged_at) + " · #" + m.id;
+  const tags = [];
+  if (rev) tags.push(h("span", { class: "tag" }, "undone by #" + rev));
+  if (m.group_id && m.kind === "takeout") {
+    const parts = db.movements.filter(x => x.group_id === m.group_id && x.kind === "takeout").length;
+    if (parts > 1) tags.push(h("span", { class: "tag" }, "1 of " + parts + " batches"));
+  }
+  const canUndo = withAction && !rev && m.kind !== "reversal" && !(m.kind === "count" && m.ref_id);
+  return h("div", { class: "entry" + (rev ? " struck" : "") },
+    h("div", { class: "main" },
+      h("div", { class: "ttl" }, title, tags),
+      sub.length ? h("div", { class: "sub" }, sub.join(" · ")) : null,
+      h("div", { class: "sub" }, meta)),
+    h("div", null,
+      h("div", { class: "qty " + (m.boxes > 0 ? "pos" : m.boxes < 0 ? "neg" : "") }, signed(m.boxes)),
+      canUndo ? h("button", { class: "btn small secondary needs-net", style: "margin-top:4px", type: "button", disabled: !online, onclick: () => undoSheet(m, D) }, "Undo") : null));
+}
+
+function renderStock(D) {
+  const low = db.settings || {};
+  const tiles = $("tiles"); tiles.innerHTML = "";
+  Object.keys(PRODUCTS).forEach(p => {
+    const n = D.stock[p], isLow = low[p] !== undefined && n <= low[p];
+    tiles.append(h("div", { class: "tile " + p },
+      h("div", { class: "k" }, PRODUCTS[p] + " chips"),
+      h("div", { class: "v" }, nf.format(n), " ", h("span", { class: "u" }, n === 1 ? "box" : "boxes")),
+      isLow ? h("span", { class: "low" }, "⚠ Low stock") : null));
+  });
+  // today
+  const t = today(), td = $("today"); td.innerHTML = "";
+  const rows = Object.keys(PRODUCTS).map(p => {
+    let prod = 0, out = 0;
+    db.movements.forEach(m => { if (m.product !== p || m.entry_date !== t) return; const k = D.effKind(m); if (k === "production") prod += m.boxes; else if (k === "takeout") out -= m.boxes; });
+    return h("tr", null, h("td", null, h("span", { class: "key", style: "background:var(--" + p + ")" }), PRODUCTS[p]), h("td", { class: "n pos" }, prod ? "+" + nf.format(prod) : "0"), h("td", { class: "n neg" }, out ? "−" + nf.format(out) : "0"));
+  });
+  td.append(h("table", { class: "t" }, h("tr", null, h("th", null, ""), h("th", { class: "n" }, "Produced"), h("th", { class: "n" }, "Taken out")), rows));
+  // batches
+  const bt = $("batches"); bt.innerHTML = "";
+  const list = Object.keys(PRODUCTS).flatMap(p => batchesWithStock(D, p));
+  const odd = D.batches.filter(b => b.boxes < 0);
+  if (!list.length) bt.append(h("div", { class: "empty" }, "No chips in stock."));
+  else bt.append(h("table", { class: "t" },
+    h("tr", null, h("th", null, "Product"), h("th", null, "Batch"), h("th", null, "Produced from"), h("th", { class: "n" }, "Boxes")),
+    list.map(b => h("tr", null, h("td", null, h("span", { class: "key", style: "background:var(--" + b.product + ")" }), PRODUCTS[b.product]), h("td", null, b.batch), h("td", null, b.first ? shortDay(b.first) : "–"), h("td", { class: "n" }, nf.format(b.boxes))))));
+  if (odd.length) bt.append(h("p", { class: "err" }, "Check: " + odd.map(b => PRODUCTS[b.product] + " batch " + b.batch + " shows " + b.boxes).join(", ") + " boxes. Do a stock count."));
+  // recent
+  const rc = $("recent"); rc.innerHTML = "";
+  const last = db.movements.slice(-6).reverse();
+  if (!last.length) rc.append(h("div", { class: "empty" }, "Nothing entered yet. Start with “+ Production”."));
+  last.forEach(m => rc.append(entryEl(m, D, false)));
+}
+
+/* ---------- history ---------- */
+let histLimit = 80;
+function histFilter() {
+  return { product: $("fProduct").value, kind: $("fKind").value, user: $("fUser").value, batch: $("fBatch").value.trim(), from: $("fFrom").value, to: $("fTo").value };
+}
+function filtered(D) {
+  const f = histFilter();
+  return db.movements.filter(m =>
+    (!f.product || m.product === f.product) && (!f.kind || m.kind === f.kind) && (!f.user || String(m.user_id) === f.user) &&
+    (!f.batch || m.batch.toLowerCase().includes(f.batch.toLowerCase())) && (!f.from || m.entry_date >= f.from) && (!f.to || m.entry_date <= f.to));
+}
+function renderHistory(D) {
+  const us = $("fUser"), cur = us.value; us.innerHTML = "";
+  us.append(h("option", { value: "" }, "All"), db.users.map(u => h("option", { value: String(u.id) }, u.name)));
+  us.value = cur;
+  const f = histFilter(); const active = Object.values(f).filter(Boolean).length;
+  $("filterSummary").textContent = active ? active + " filter" + (active > 1 ? "s" : "") + " on" : "all entries";
+  const list = filtered(D);
+  let prod = 0, out = 0, adj = 0;
+  list.forEach(m => { const k = D.effKind(m); if (k === "production") prod += m.boxes; else if (k === "takeout") out -= m.boxes; else if (k === "count") adj += m.boxes; });
+  $("histSum").innerHTML = "";
+  $("histSum").append(h("table", { class: "t" },
+    h("tr", null, h("th", null, "Entries"), h("th", { class: "n" }, "Produced"), h("th", { class: "n" }, "Taken out"), h("th", { class: "n" }, "Count adj.")),
+    h("tr", null, h("td", null, nf.format(list.length)), h("td", { class: "n pos" }, nf.format(prod)), h("td", { class: "n neg" }, nf.format(out)), h("td", { class: "n" }, signed(adj)))));
+  const box = $("histList"); box.innerHTML = "";
+  if (!list.length) { box.append(h("div", { class: "empty" }, "No entries.")); $("histMore").hidden = true; return; }
+  const shown = list.slice().sort((a, b) => b.entry_date.localeCompare(a.entry_date) || b.id - a.id).slice(0, histLimit);
+  let lastDay = null, group = null;
+  shown.forEach(m => {
+    if (m.entry_date !== lastDay) { lastDay = m.entry_date; box.append(h("div", { class: "day" }, niceDay(m.entry_date))); group = h("div"); box.append(group); }
+    group.append(entryEl(m, D, true));
+  });
+  $("histMore").hidden = list.length <= histLimit;
+}
+
+function exportCSV() {
+  const D = derive(), list = filtered(D);
+  if (!list.length) { toast("Nothing to export"); return; }
+  const sep = $("sep").value;
+  const cell = v => { let s = v === null || v === undefined ? "" : String(v); if (/["\n\r]/.test(s) || s.includes(sep)) s = '"' + s.replace(/"/g, '""') + '"'; return s; };
+  const head = ["ID", "Entered at", "Date", "Product", "Batch", "Type", "Boxes", "Reason", "Customer / receiver", "Note", "By", "Undoes ID", "Undone by ID"];
+  const lines = [head.map(cell).join(sep)];
+  list.forEach(m => {
+    const d = new Date(m.logged_at);
+    lines.push([m.id, isoOf(d) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()), m.entry_date, PRODUCTS[m.product], m.batch, KIND[m.kind], m.boxes, m.reason || "", m.customer || "", m.note || "", D.userName[m.user_id] || "", m.ref_id || "", D.reversedBy[m.id] || ""].map(cell).join(sep));
+  });
+  const a = h("a", { href: URL.createObjectURL(new Blob(["﻿" + lines.join("\r\n") + "\r\n"], { type: "text/csv;charset=utf-8" })), download: "sakal_stock_log_" + today() + ".csv" });
+  document.body.append(a); a.click(); a.remove();
+  toast("Downloaded " + list.length + " entries");
+}
+
+/* ---------- trends ---------- */
+function bucketKey(dateStr, step) {
+  const d = fromISO(dateStr);
+  if (step === "day") return dateStr;
+  if (step === "month") return dateStr.slice(0, 7);
+  const w = isoWeek(d); return w.year + "-W" + pad(w.week);
+}
+function bucketLabel(key, step) {
+  if (step === "day") return shortDay(key);
+  if (step === "month") { const [y, m] = key.split("-"); return new Date(+y, +m - 1, 1).toLocaleDateString("en-GB", { month: "short" }) + (step === "month" ? " " + y.slice(2) : ""); }
+  return "W" + key.split("-W")[1];
+}
+function bucketTitle(key, step) {
+  if (step === "day") return niceDay(key);
+  if (step === "month") { const [y, m] = key.split("-"); return new Date(+y, +m - 1, 1).toLocaleDateString("en-GB", { month: "long", year: "numeric" }); }
+  return "Week " + key.split("-W")[1] + ", " + key.split("-W")[0];
+}
+function renderTrends(D) {
+  const per = $("tPeriod").value, step = $("tStep").value;
+  const end = today();
+  let start;
+  if (per === "all") start = db.movements.reduce((a, m) => m.entry_date < a ? m.entry_date : a, end);
+  else if (per === "year") start = end.slice(0, 4) + "-01-01";
+  else { const d = new Date(); d.setDate(d.getDate() - (+per - 1)); start = isoOf(d); }
+  // list every bucket between start and end
+  const keys = []; const seen = new Set(); const endOf = {};
+  for (let d = fromISO(start); isoOf(d) <= end; d.setDate(d.getDate() + 1)) {
+    const iso = isoOf(d), k = bucketKey(iso, step);
+    if (!seen.has(k)) { seen.add(k); keys.push(k); }
+    endOf[k] = iso;
+  }
+  const inRange = db.movements.filter(m => m.entry_date >= start && m.entry_date <= end);
+  $("trendsEmpty").hidden = inRange.length > 0; $("trendsBody").hidden = inRange.length === 0;
+  if (!inRange.length || keys.length > 400) return;
+  const idx = {}; keys.forEach((k, i) => idx[k] = i);
+  const zero = () => keys.map(() => 0);
+  const prod = { ripe: zero(), unripe: zero() }, out = { ripe: zero(), unripe: zero() };
+  inRange.forEach(m => {
+    const i = idx[bucketKey(m.entry_date, step)]; if (i === undefined) return;
+    const k = D.effKind(m);
+    if (k === "production") prod[m.product][i] += m.boxes;
+    else if (k === "takeout") out[m.product][i] -= m.boxes;
+  });
+  // stock level at end of each bucket
+  const sorted = db.movements.slice().sort((a, b) => a.entry_date.localeCompare(b.entry_date) || a.id - b.id);
+  const level = { ripe: [], unripe: [] }; let j = 0; const run = { ripe: 0, unripe: 0 };
+  keys.forEach(k => { while (j < sorted.length && sorted[j].entry_date <= endOf[k]) { run[sorted[j].product] += sorted[j].boxes; j++; } level.ripe.push(run.ripe); level.unripe.push(run.unripe); });
+  const labels = keys.map(k => bucketLabel(k, step)), titles = keys.map(k => bucketTitle(k, step));
+  const series = obj => [{ name: "Ripe", color: "var(--ripe)", values: obj.ripe }, { name: "Unripe", color: "var(--unripe)", values: obj.unripe }];
+  const fmt = v => nf.format(v) + (Math.abs(v) === 1 ? " box" : " boxes");
+  drawChart($("chStock"), { type: "line", labels, titles, series: series(level), fmt, aria: "Stock level" });
+  drawChart($("chProd"), { type: "bar", labels, titles, series: series(prod), fmt, aria: "Boxes produced" });
+  drawChart($("chOut"), { type: "bar", labels, titles, series: series(out), fmt, aria: "Boxes taken out" });
+  // reasons table
+  const rs = {}; REASONS.forEach(r => rs[r] = { ripe: 0, unripe: 0 });
+  inRange.forEach(m => {
+    if (D.effKind(m) !== "takeout") return;
+    const src = m.kind === "reversal" ? D.byId[m.ref_id] : m;
+    if (src && rs[src.reason]) rs[src.reason][m.product] -= m.boxes;
+  });
+  const rrows = REASONS.filter(r => rs[r].ripe || rs[r].unripe);
+  $("tReasons").innerHTML = "";
+  $("tReasons").append(rrows.length ? h("table", { class: "t" },
+    h("tr", null, h("th", null, "Reason"), h("th", { class: "n" }, "Ripe"), h("th", { class: "n" }, "Unripe"), h("th", { class: "n" }, "Total")),
+    rrows.map(r => h("tr", null, h("td", null, cap(r)), h("td", { class: "n" }, nf.format(rs[r].ripe)), h("td", { class: "n" }, nf.format(rs[r].unripe)), h("td", { class: "n" }, nf.format(rs[r].ripe + rs[r].unripe))))) : h("div", { class: "empty" }, "No take-outs in this period."));
+  // people table
+  const ppl = {};
+  inRange.forEach(m => {
+    const p = ppl[m.user_id] || (ppl[m.user_id] = { prod: 0, out: 0, n: 0 }); p.n++;
+    // a correction is booked on the person whose entry it corrects
+    const src = m.kind === "reversal" && D.byId[m.ref_id] ? D.byId[m.ref_id] : m;
+    const q = ppl[src.user_id] || (ppl[src.user_id] = { prod: 0, out: 0, n: 0 });
+    const k = D.effKind(m); if (k === "production") q.prod += m.boxes; else if (k === "takeout") q.out -= m.boxes;
+  });
+  $("tPeople").innerHTML = "";
+  $("tPeople").append(h("table", { class: "t" },
+    h("tr", null, h("th", null, "Person"), h("th", { class: "n" }, "Entries"), h("th", { class: "n" }, "Produced"), h("th", { class: "n" }, "Taken out")),
+    Object.keys(ppl).map(id => h("tr", null, h("td", null, D.userName[id] || "?"), h("td", { class: "n" }, ppl[id].n), h("td", { class: "n" }, nf.format(ppl[id].prod)), h("td", { class: "n" }, nf.format(ppl[id].out))))));
+}
+
+/* ---------- charts (SVG, no libraries) ---------- */
+const SVGNS = "http://www.w3.org/2000/svg";
+function sv(tag, attrs, parent) { const e = document.createElementNS(SVGNS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.append(e); return e; }
+function niceTicks(min, max, count) {
+  if (min === max) max = min + 1;
+  const step0 = (max - min) / count, mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = Math.max(1, [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= step0));
+  const lo = Math.floor(min / step) * step, hi = Math.ceil(max / step) * step;
+  const t = []; for (let v = lo; v <= hi + step / 2; v += step) t.push(Math.round(v * 1e6) / 1e6); return t;
+}
+function drawChart(wrap, o) {
+  wrap.innerHTML = "";
+  wrap.append(h("div", { class: "legend" + (o.type === "line" ? " lines" : "") }, o.series.map(s => h("span", null, h("i", { style: "background:" + s.color }), s.name))));
+  const W = Math.max(280, wrap.clientWidth || 320), H = 200, m = { l: 40, r: 10, t: 8, b: 24 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const all = o.series.flatMap(s => s.values);
+  let lo = Math.min(0, ...all), hi = Math.max(1, ...all);
+  const ticks = niceTicks(lo, hi, 4); lo = ticks[0]; hi = ticks[ticks.length - 1];
+  const y = v => m.t + ih - (v - lo) / (hi - lo) * ih;
+  const n = o.labels.length, band = iw / n, x = i => m.l + band * (i + .5);
+  const svg = sv("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": o.aria }, wrap);
+  const ax = sv("g", { class: "axis" }, svg);
+  ticks.forEach(t => { sv("line", { x1: m.l, x2: W - m.r, y1: y(t), y2: y(t), stroke: t === 0 ? "var(--muted)" : "var(--grid)" }, ax); sv("text", { x: m.l - 6, y: y(t) + 4, "text-anchor": "end" }, ax).textContent = nf.format(t); });
+  const every = Math.ceil(n / Math.max(1, Math.floor(iw / 46)));
+  o.labels.forEach((l, i) => { if (i % every) return; sv("text", { x: x(i), y: H - 7, "text-anchor": "middle" }, ax).textContent = l; });
+  const marks = [];
+  if (o.type === "bar") {
+    const ns = o.series.length, gap = 2, groupW = Math.min(band - 4, 18 * ns + gap * (ns - 1)), bw = Math.max(2, (groupW - gap * (ns - 1)) / ns), rr = Math.min(3, bw / 2);
+    o.series.forEach((s, si) => s.values.forEach((v, i) => {
+      if (!v) return;
+      const x0 = x(i) - groupW / 2 + si * (bw + gap), y0 = y(0), y1 = y(v), hgt = Math.abs(y1 - y0);
+      const d = hgt < rr ? `M${x0},${Math.min(y0, y1)}h${bw}v${Math.max(hgt, 1)}h${-bw}z`
+        : v > 0 ? `M${x0},${y0}V${y1 + rr}Q${x0},${y1} ${x0 + rr},${y1}H${x0 + bw - rr}Q${x0 + bw},${y1} ${x0 + bw},${y1 + rr}V${y0}Z`
+        : `M${x0},${y0}V${y1 - rr}Q${x0},${y1} ${x0 + rr},${y1}H${x0 + bw - rr}Q${x0 + bw},${y1} ${x0 + bw},${y1 - rr}V${y0}Z`;
+      (marks[i] = marks[i] || []).push(sv("path", { d, fill: s.color }, svg));
+    }));
+  } else {
+    o.series.forEach(s => {
+      sv("path", { d: s.values.map((v, i) => (i ? "L" : "M") + x(i) + "," + y(v)).join(""), fill: "none", stroke: s.color, "stroke-width": 2, "stroke-linejoin": "round" }, svg);
+      if (n <= 40) s.values.forEach((v, i) => sv("circle", { cx: x(i), cy: y(v), r: 3.5, fill: s.color, stroke: "var(--card)", "stroke-width": 2 }, svg));
+    });
+  }
+  const cross = sv("line", { y1: m.t, y2: m.t + ih, stroke: "var(--muted)", "stroke-dasharray": "3 3", visibility: "hidden" }, svg);
+  const hit = sv("rect", { x: m.l, y: m.t, width: iw, height: ih, fill: "transparent" }, svg);
+  const tip = h("div", { class: "tip", hidden: true }); wrap.append(tip);
+  const show = ev => {
+    const r = svg.getBoundingClientRect(), px = (ev.clientX - r.left) * (W / r.width);
+    const i = Math.max(0, Math.min(n - 1, Math.floor((px - m.l) / band)));
+    tip.innerHTML = "";
+    tip.append(h("div", { class: "h" }, o.titles[i]), o.series.map(s => h("div", { class: "r" }, h("i", { style: "background:" + s.color }), h("strong", null, o.fmt(s.values[i])), " " + s.name)));
+    tip.hidden = false;
+    marks.forEach((g, j) => g && g.forEach(p => p.setAttribute("opacity", j === i ? 1 : .5)));
+    if (o.type === "line") { cross.setAttribute("x1", x(i)); cross.setAttribute("x2", x(i)); cross.setAttribute("visibility", "visible"); }
+    const sc = r.width / W, lgH = wrap.querySelector(".legend").offsetHeight + 4;
+    let left = x(i) * sc + 10; if (left + tip.offsetWidth > r.width) left = x(i) * sc - tip.offsetWidth - 10;
+    tip.style.left = Math.max(0, left) + "px"; tip.style.top = lgH + "px";
+  };
+  const hide = () => { tip.hidden = true; cross.setAttribute("visibility", "hidden"); marks.forEach(g => g && g.forEach(p => p.setAttribute("opacity", 1))); };
+  hit.addEventListener("pointermove", show); hit.addEventListener("pointerdown", show);
+  hit.addEventListener("pointerleave", e => { if (e.pointerType === "mouse") hide(); });
+  document.addEventListener("pointerdown", e => { if (!wrap.contains(e.target)) hide(); });
+}
+
+/* ---------- more ---------- */
+function renderMore(D) {
+  const me = session.user;
+  $("meLine").textContent = "Logged in as " + me.name + (me.is_admin ? " (admin)" : "");
+  $("adminArea").hidden = !me.is_admin;
+  if (me.is_admin) {
+    const ul = $("userList"); ul.innerHTML = "";
+    db.users.forEach(u => {
+      const self = u.id === me.id;
+      ul.append(h("div", { class: "entry" },
+        h("div", { class: "main" }, h("div", { class: "ttl" }, u.name, u.is_admin ? h("span", { class: "tag" }, "admin") : null, !u.active ? h("span", { class: "tag warn" }, "deactivated") : null)),
+        h("div", { class: "row", style: "justify-content:flex-end;flex:none" },
+          h("button", { class: "btn small secondary needs-net", type: "button", onclick: () => resetPinSheet(u) }, "Reset PIN"),
+          self ? null : h("button", { class: "btn small secondary needs-net", type: "button", onclick: () => simpleAction("set_admin", { p_user_id: u.id, p_is_admin: !u.is_admin }, u.is_admin ? "Remove admin rights from " + u.name + "?" : "Make " + u.name + " an admin?") }, u.is_admin ? "Remove admin" : "Make admin"),
+          self ? null : h("button", { class: "btn small " + (u.active ? "danger" : "secondary") + " needs-net", type: "button", onclick: () => simpleAction("set_user_active", { p_user_id: u.id, p_active: !u.active }, (u.active ? "Deactivate " : "Activate ") + u.name + "?" + (u.active ? " They can no longer log in. Their entries stay in the log." : "")) }, u.active ? "Deactivate" : "Activate"))));
+    });
+    if (document.activeElement !== $("lowRipe")) $("lowRipe").value = db.settings.ripe ?? "";
+    if (document.activeElement !== $("lowUnripe")) $("lowUnripe").value = db.settings.unripe ?? "";
+  }
+  const el = $("eventList"); el.innerHTML = "";
+  const evs = db.events.slice().reverse().slice(0, 100);
+  if (!evs.length) el.append(h("div", { class: "empty" }, "Nothing yet."));
+  evs.forEach(e => el.append(h("div", { class: "entry" }, h("div", { class: "main" }, h("div", { class: "ttl" }, cap(e.action)), h("div", { class: "sub" }, (e.details || "") + " · by " + (D.userName[e.user_id] || "?") + " · " + stamp(e.logged_at))))));
+  $("syncInfo").textContent = "Last updated " + (db.synced ? stamp(db.synced) : "never") + ". Updates every 30 seconds while open.";
+  setOnline(online);
+}
+
+/* ================= forms (bottom sheets) ================= */
+function sheet(title, body, okLabel, onOk, opts) {
+  opts = opts || {};
+  const err = h("p", { class: "err", hidden: true });
+  const ok = h("button", { class: "btn" + (opts.danger ? " danger" : ""), type: "button" }, okLabel);
+  const close = () => wrap.remove();
+  const wrap = h("div", { class: "sheet-wrap", onclick: e => { if (e.target === wrap) close(); } },
+    h("div", { class: "sheet", role: "dialog", "aria-label": title },
+      h("h2", null, title), body, err,
+      h("div", { class: "foot" }, h("button", { class: "btn secondary", type: "button", onclick: close }, "Cancel"), ok)));
+  ok.onclick = async () => {
+    err.hidden = true; ok.disabled = true;
+    try { await onOk(); close(); } catch (e) { err.textContent = e.message; err.hidden = false; }
+    finally { ok.disabled = false; }
+  };
+  document.body.append(wrap);
+  return { wrap, err };
+}
+function seg(options, value, onChange) {
+  const el = h("div", { class: "seg", role: "group" });
+  const set = v => { value = v; [...el.children].forEach(b => b.setAttribute("aria-pressed", String(b.dataset.v === v))); onChange && onChange(v); };
+  Object.keys(options).forEach(k => el.append(h("button", { type: "button", "data-v": k, onclick: () => set(k) }, options[k])));
+  set(value); el.get = () => value; return el;
+}
+function stepper(id, initial) {
+  const inp = h("input", { id, inputmode: "numeric", pattern: "[0-9]*", value: initial ?? "", autocomplete: "off" });
+  const bump = d => { const v = Math.max(0, (parseInt(inp.value, 10) || 0) + d); inp.value = v; inp.dispatchEvent(new Event("input")); };
+  return { el: h("div", { class: "stepper" }, h("button", { class: "btn secondary", type: "button", onclick: () => bump(-1), "aria-label": "minus one" }, "−"), inp, h("button", { class: "btn secondary", type: "button", onclick: () => bump(1), "aria-label": "plus one" }, "+")), inp };
+}
+function readBoxes(inp, label) {
+  const s = inp.value.trim();
+  if (!/^\d+$/.test(s)) throw new Error("Enter " + label + " as a whole number of boxes");
+  return parseInt(s, 10);
+}
+function field(label, input, hint) { return h("div", { class: "field" }, h("label", { for: input.id }, label), input, hint ? h("div", { class: "hint" }, hint) : null); }
+
+function productionSheet() {
+  const D = derive();
+  const info = h("div", { class: "hint" });
+  let product = prefs.product;
+  const box = stepper("fBoxes", "");
+  const date = h("input", { id: "fDate", type: "date", value: today(), max: today() });
+  const batch = h("input", { id: "fBatchIn", autocomplete: "off", value: defaultBatch(today()) });
+  let batchTouched = false;
+  batch.addEventListener("input", () => batchTouched = true);
+  date.addEventListener("change", () => { if (!batchTouched) batch.value = defaultBatch(date.value); upd(); });
+  const note = h("input", { id: "fNote", autocomplete: "off", placeholder: "optional" });
+  const upd = () => { const n = parseInt(box.inp.value, 10) || 0; info.textContent = PRODUCTS[product] + " in stock now: " + nf.format(D.stock[product]) + " → after: " + nf.format(D.stock[product] + n); };
+  const pseg = seg(PRODUCTS, product, v => { product = v; upd(); });
+  box.inp.addEventListener("input", upd);
+  sheet("Add production",
+    [h("div", { class: "blk" }, h("span", { class: "lbl" }, "Product"), pseg),
+     h("div", { class: "field" }, h("label", { for: "fBoxes" }, "Boxes produced"), box.el, info),
+     h("div", { class: "grid2" }, field("Date", date), field("Batch", batch, "Year + week, change if needed")),
+     field("Note", note)],
+    "Save production", async () => {
+      const n = readBoxes(box.inp, "the boxes produced"); if (n <= 0) throw new Error("Enter how many boxes were produced");
+      await rpc("add_production", { p_token: session.token, p_product: product, p_boxes: n, p_batch: batch.value.trim(), p_date: date.value, p_note: note.value });
+      prefs.product = product; save(LS_PREFS, prefs);
+      await sync(); toast("Saved: +" + n + " " + PRODUCTS[product].toLowerCase() + " boxes");
+    });
+  setTimeout(() => box.inp.focus(), 50);
+}
+
+function takeOutSheet() {
+  const D = derive();
+  let product = prefs.product, reason = null;
+  const box = stepper("oBoxes", "");
+  const from = h("select", { id: "oFrom" });
+  const info = h("div", { class: "hint" });
+  const fillBatches = () => {
+    from.innerHTML = "";
+    from.append(h("option", { value: "" }, "Oldest first (automatic)"));
+    batchesWithStock(D, product).forEach(b => from.append(h("option", { value: b.batch }, "Batch " + b.batch + " – " + b.boxes + " box" + (b.boxes === 1 ? "" : "es"))));
+  };
+  const upd = () => {
+    const n = parseInt(box.inp.value, 10) || 0;
+    const avail = from.value ? (batchesWithStock(D, product).find(b => b.batch === from.value) || { boxes: 0 }).boxes : D.stock[product];
+    info.textContent = "Available: " + nf.format(avail) + (n ? " → after: " + nf.format(avail - n) : "");
+    info.className = "hint" + (n > avail ? " neg" : "");
+  };
+  const pseg = seg(PRODUCTS, product, v => { product = v; fillBatches(); upd(); });
+  from.addEventListener("change", upd); box.inp.addEventListener("input", upd);
+  const chips = h("div", { class: "chips" }, REASONS.map(r => h("button", { type: "button", "data-r": r, "aria-pressed": "false", onclick: () => { reason = r; [...chips.children].forEach(c => c.setAttribute("aria-pressed", String(c.dataset.r === r))); } }, cap(r))));
+  const cust = h("input", { id: "oCust", autocomplete: "off", placeholder: "optional – who received it" });
+  const date = h("input", { id: "oDate", type: "date", value: today(), max: today() });
+  const note = h("input", { id: "oNote", autocomplete: "off", placeholder: "optional" });
+  fillBatches(); upd();
+  sheet("Take out",
+    [h("div", { class: "blk" }, h("span", { class: "lbl" }, "Product"), pseg),
+     h("div", { class: "field" }, h("label", { for: "oBoxes" }, "Boxes taken out"), box.el, info),
+     field("From batch", from),
+     h("div", { class: "blk" }, h("span", { class: "lbl" }, "Reason"), chips),
+     field("Customer / receiver", cust),
+     h("div", { class: "grid2" }, field("Date", date), field("Note", note))],
+    "Save take-out", async () => {
+      const n = readBoxes(box.inp, "the boxes taken out"); if (n <= 0) throw new Error("Enter how many boxes are taken out");
+      if (!reason) throw new Error("Choose a reason");
+      await rpc("take_out", { p_token: session.token, p_product: product, p_boxes: n, p_batch: from.value || null, p_reason: reason, p_customer: cust.value, p_note: note.value, p_date: date.value });
+      prefs.product = product; save(LS_PREFS, prefs);
+      await sync(); toast("Saved: −" + n + " " + PRODUCTS[product].toLowerCase() + " boxes");
+    });
+  setTimeout(() => box.inp.focus(), 50);
+}
+
+function countSheet() {
+  const D = derive();
+  let product = prefs.product;
+  const bsel = h("select", { id: "cBatch" });
+  const other = h("input", { id: "cOther", autocomplete: "off", placeholder: "batch number", hidden: true });
+  const counted = stepper("cBoxes", "");
+  const info = h("div", { class: "hint" });
+  const curBatch = () => bsel.value === "__other" ? other.value.trim() : bsel.value;
+  const recorded = () => { const b = D.batches.find(x => x.product === product && x.batch === curBatch()); return b ? b.boxes : 0; };
+  const fill = () => {
+    bsel.innerHTML = "";
+    D.batches.filter(b => b.product === product && b.boxes !== 0).sort((a, b) => a.batch.localeCompare(b.batch))
+      .forEach(b => bsel.append(h("option", { value: b.batch }, "Batch " + b.batch + " – recorded " + b.boxes)));
+    bsel.append(h("option", { value: "__other" }, "Other batch…"));
+    other.hidden = bsel.value !== "__other";
+  };
+  const upd = () => {
+    other.hidden = bsel.value !== "__other";
+    const r = recorded(), c = counted.inp.value.trim() === "" ? null : parseInt(counted.inp.value, 10);
+    info.textContent = "Recorded: " + nf.format(r) + (c === null || isNaN(c) ? "" : " → difference: " + signed(c - r));
+  };
+  const pseg = seg(PRODUCTS, product, v => { product = v; fill(); upd(); });
+  bsel.addEventListener("change", upd); other.addEventListener("input", upd); counted.inp.addEventListener("input", upd);
+  const date = h("input", { id: "cDate", type: "date", value: today(), max: today() });
+  const note = h("input", { id: "cNote", autocomplete: "off", placeholder: "optional" });
+  fill(); upd();
+  sheet("Stock count",
+    [h("p", { class: "small muted", style: "margin-top:0" }, "Count the boxes on the shelf for one batch. The difference to the recorded number is logged."),
+     h("div", { class: "blk" }, h("span", { class: "lbl" }, "Product"), pseg),
+     h("div", { class: "field" }, h("label", { for: "cBatch" }, "Batch"), bsel, other),
+     h("div", { class: "field" }, h("label", { for: "cBoxes" }, "Boxes counted"), counted.el, info),
+     h("div", { class: "grid2" }, field("Date", date), field("Note", note))],
+    "Save count", async () => {
+      const c = readBoxes(counted.inp, "the boxes counted");
+      if (!curBatch()) throw new Error("Choose a batch");
+      const r = await rpc("stock_count", { p_token: session.token, p_product: product, p_batch: curBatch(), p_counted: c, p_note: note.value, p_date: date.value });
+      await sync(); toast(r.difference ? "Count saved – difference " + signed(r.difference) : "Count saved – matches");
+    });
+}
+
+function undoSheet(m, D) {
+  const parts = m.group_id && m.kind === "takeout" ? db.movements.filter(x => x.group_id === m.group_id && x.kind === "takeout") : [m];
+  const why = h("input", { id: "uWhy", autocomplete: "off", placeholder: "e.g. typed 15 instead of 5" });
+  sheet("Undo entry #" + m.id,
+    [h("div", { class: "card", style: "box-shadow:none;border:1px solid var(--line)" }, parts.map(p => entryEl(p, D, false))),
+     h("p", { class: "small muted" }, "This adds a correction entry with the opposite amount" + (parts.length > 1 ? " for all " + parts.length + " batches of this take-out" : "") + ". The original stays in the log. If the amount was wrong, enter the right amount again afterwards."),
+     field("Why is it wrong? (required)", why)],
+    "Undo entry", async () => {
+      if (!why.value.trim()) throw new Error("Write why the entry is wrong");
+      await rpc("reverse_entry", { p_token: session.token, p_id: m.id, p_note: why.value });
+      await sync(); toast("Entry #" + m.id + " undone");
+    }, { danger: true });
+}
+
+function changePinSheet() {
+  const o = h("input", { id: "pOld", type: "password", inputmode: "numeric", maxlength: 6 });
+  const n1 = h("input", { id: "pNew", type: "password", inputmode: "numeric", maxlength: 6 });
+  const n2 = h("input", { id: "pNew2", type: "password", inputmode: "numeric", maxlength: 6 });
+  sheet("Change my PIN", [field("Current PIN", o), field("New PIN (4–6 digits)", n1), field("New PIN again", n2)], "Change PIN", async () => {
+    if (n1.value !== n2.value) throw new Error("The new PINs don't match");
+    await rpc("change_pin", { p_token: session.token, p_old: o.value, p_new: n1.value });
+    await sync(); toast("PIN changed");
+  });
+}
+function resetPinSheet(u) {
+  const n1 = h("input", { id: "rNew", type: "password", inputmode: "numeric", maxlength: 6 });
+  sheet("New PIN for " + u.name, [field("New PIN (4–6 digits)", n1, "Tell " + u.name + " the new PIN. They can change it under More."), ], "Set PIN", async () => {
+    await rpc("reset_pin", { p_token: session.token, p_user_id: u.id, p_pin: n1.value });
+    await sync(); toast("PIN for " + u.name + " changed");
+  });
+}
+function addUserSheet() {
+  const nm = h("input", { id: "aName", autocomplete: "off" });
+  const pin = h("input", { id: "aPin", type: "password", inputmode: "numeric", maxlength: 6 });
+  const adm = h("input", { id: "aAdmin", type: "checkbox" });
+  sheet("Add person", [field("Name", nm), field("PIN (4–6 digits)", pin), h("label", { style: "display:flex;gap:8px;align-items:center" }, adm, "Admin (can add people and reset PINs)")], "Add", async () => {
+    await rpc("add_user", { p_token: session.token, p_name: nm.value, p_pin: pin.value, p_is_admin: adm.checked });
+    await sync(); toast(nm.value.trim() + " added");
+  });
+}
+async function simpleAction(fn, args, question) {
+  if (!confirm(question)) return;
+  try { await rpc(fn, Object.assign({ p_token: session.token }, args)); await sync(); toast("Done"); } catch (e) { toast(e.message, 4000); }
+}
+
+/* ================= login ================= */
+let loginUser = null;
+async function showLogin(msg) {
+  $("app").hidden = true; $("login").hidden = false; $("loginPin").hidden = true; $("loginUsers").hidden = false;
+  const box = $("userBtns"); box.innerHTML = "";
+  $("usersErr").hidden = !msg; $("usersErr").textContent = msg || "";
+  try {
+    const users = await rpc("list_users", {});
+    if (!users.length) { $("usersErr").textContent = "No people set up yet – run setup.sql in Supabase first."; $("usersErr").hidden = false; }
+    users.forEach(u => box.append(h("button", { class: "btn secondary", type: "button", onclick: () => pickUser(u) }, u.name)));
+  } catch (e) { $("usersErr").textContent = e.message; $("usersErr").hidden = false; box.append(h("button", { class: "btn", type: "button", onclick: () => showLogin() }, "Try again")); }
+}
+function pickUser(u) {
+  loginUser = u; $("pinName").textContent = u.name; $("pin").value = ""; $("pinErr").hidden = true;
+  $("loginUsers").hidden = true; $("loginPin").hidden = false; setTimeout(() => $("pin").focus(), 50);
+}
+async function doLogin() {
+  const btn = $("pinGo"); btn.disabled = true; $("pinErr").hidden = true;
+  try {
+    const r = await rpc("login", { p_user_id: loginUser.id, p_pin: $("pin").value });
+    if (!r.ok) throw new Error(r.error);
+    session = { token: r.token, user: r.user }; save(LS_SESSION, session);
+    if (db.me && db.me.id !== r.user.id) { /* different person on this phone – keep shared data, it's the same stock */ }
+    startApp();
+  } catch (e) { $("pinErr").textContent = e.message; $("pinErr").hidden = false; $("pin").value = ""; }
+  finally { btn.disabled = false; }
+}
+function endSession(msg) {
+  session = null; localStorage.removeItem(LS_SESSION);
+  document.querySelectorAll(".sheet-wrap").forEach(w => w.remove());
+  showLogin(msg);
+}
+
+/* ================= start ================= */
+function showTab(name) {
+  currentTab = name;
+  document.querySelectorAll("nav button").forEach(b => b.setAttribute("aria-selected", String(b.dataset.tab === name)));
+  document.querySelectorAll(".tab").forEach(s => s.hidden = s.id !== "tab-" + name);
+  window.scrollTo(0, 0);
+  render();
+}
+let pollTimer;
+function startApp() {
+  $("login").hidden = true; $("app").hidden = false;
+  render(); sync();
+  clearInterval(pollTimer);
+  pollTimer = setInterval(() => { if (document.visibilityState === "visible") sync(); }, 30000);
+}
+
+document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+$("btnProd").classList.add("needs-net"); $("btnOut").classList.add("needs-net"); $("btnCount").classList.add("needs-net");
+$("btnProd").onclick = productionSheet; $("btnOut").onclick = takeOutSheet; $("btnCount").onclick = countSheet;
+$("seeAll").onclick = () => showTab("history");
+["fProduct", "fKind", "fUser", "fBatch", "fFrom", "fTo"].forEach(id => $(id).addEventListener("input", () => { histLimit = 80; render(); }));
+$("fClear").onclick = () => { ["fProduct", "fKind", "fUser", "fBatch", "fFrom", "fTo"].forEach(id => $(id).value = ""); render(); };
+$("histMore").onclick = () => { histLimit += 200; render(); };
+$("sep").value = prefs.sep || ((1.5).toLocaleString().includes(",") ? ";" : ",");
+$("sep").onchange = () => { prefs.sep = $("sep").value; save(LS_PREFS, prefs); };
+$("exportBtn").onclick = exportCSV;
+$("tPeriod").onchange = render; $("tStep").onchange = render;
+$("changePinBtn").onclick = changePinSheet;
+$("logoutBtn").onclick = async () => { if (!confirm("Log out?")) return; try { await rpc("logout", { p_token: session.token }); } catch (e) {} endSession(); };
+$("addUserBtn").classList.add("needs-net"); $("addUserBtn").onclick = addUserSheet;
+$("saveLow").classList.add("needs-net");
+$("saveLow").onclick = async () => {
+  try {
+    for (const [p, id] of [["ripe", "lowRipe"], ["unripe", "lowUnripe"]]) {
+      const v = $(id).value.trim(); if (!/^\d+$/.test(v)) throw new Error("Enter whole numbers");
+      if (+v !== db.settings[p]) await rpc("set_low_stock", { p_token: session.token, p_product: p, p_boxes: +v });
+    }
+    await sync(); toast("Saved");
+  } catch (e) { toast(e.message, 4000); }
+};
+$("reloadAll").onclick = async () => { await sync(true); toast("All data reloaded"); };
+$("pinGo").onclick = doLogin;
+$("pin").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+$("pinBack").onclick = () => showLogin();
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && session) sync(); });
+window.addEventListener("online", () => session && sync());
+let rT; window.addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(render, 150); });
+
+if (!CFG.url || !CFG.key) { $("setup").hidden = false; }
+else if (session) startApp();
+else showLogin();
+
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost" || location.hostname === "127.0.0.1")) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+</script>
+</body>
+</html>

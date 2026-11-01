@@ -495,6 +495,7 @@ function setOnline(v) {
 let syncing = null;
 async function sync(full) {
   if (!session) return;
+  if (typeof checkSessionAge === "function" && checkSessionAge()) return;
   if (syncing) return syncing;
   syncing = (async () => {
     try {
@@ -979,7 +980,8 @@ function sheet(title, body, okLabel, onOk, opts) {
   const ok = okLabel ? h("button", { class: "btn" + (opts.danger ? " danger" : ""), type: "button" }, okLabel) : null;
   const el = h("div", { class: "sheet", role: "dialog", "aria-modal": "true", "aria-label": title },
     head, h("h2", null, title), body, err,
-    h("div", { class: "foot" }, h("button", { class: "btn secondary", type: "button", onclick: () => close() }, okLabel ? "Cancel" : "Close"), ok));
+    h("div", { class: "foot" }, opts.locked ? null : h("button", { class: "btn secondary", type: "button", onclick: () => close() }, okLabel ? "Cancel" : "Close"), ok));
+  if (opts.locked) head.hidden = true;
   let closed = false;
   function close() {
     if (closed) return; closed = true;
@@ -988,9 +990,9 @@ function sheet(title, body, okLabel, onOk, opts) {
     setTimeout(() => { el.remove(); scrim.remove(); }, REDUCED ? 220 : 470);
     document.removeEventListener("keydown", esc);
   }
-  const esc = e => { if (e.key === "Escape") close(); };
+  const esc = e => { if (e.key === "Escape" && !opts.locked) close(); };
   document.addEventListener("keydown", esc);
-  scrim.onclick = close;
+  scrim.onclick = () => { if (!opts.locked) close(); };
   if (ok) ok.onclick = async () => {
     err.hidden = true; ok.disabled = true;
     try { await onOk(); haptic(); close(); } catch (e) { err.textContent = e.message; err.hidden = false; }
@@ -1102,28 +1104,34 @@ function undoSheet(m, D) {
     }, { danger: true });
 }
 
-function changePinSheet() {
-  const o = h("input", { id: "pOld", type: "password", inputmode: "numeric", maxlength: 6 });
-  const n1 = h("input", { id: "pNew", type: "password", inputmode: "numeric", maxlength: 6 });
-  const n2 = h("input", { id: "pNew2", type: "password", inputmode: "numeric", maxlength: 6 });
-  sheet("Change my PIN", [field("Current PIN", o), field("New PIN (4–6 digits)", n1), field("New PIN again", n2)], "Change PIN", async () => {
+const SIX = /^\d{6}$/;
+function pinInput(id) { return h("input", { id, type: "password", inputmode: "numeric", pattern: "[0-9]*", maxlength: 6, autocomplete: "off" }); }
+function changePinSheet(forced) {
+  const o = pinInput("pOld"), n1 = pinInput("pNew"), n2 = pinInput("pNew2");
+  sheet(forced ? "Set a 6-digit PIN" : "Change my PIN", [
+    forced ? h("p", { class: "small muted", style: "margin:-6px 4px 14px" }, "PINs now have 6 digits for better safety. Please choose a new one to continue.") : null,
+    field("Current PIN", o), field("New PIN (6 digits)", n1), field("New PIN again", n2)], "Save PIN", async () => {
+    if (!SIX.test(n1.value)) throw new Error("The new PIN must be exactly 6 digits");
     if (n1.value !== n2.value) throw new Error("The new PINs don't match");
     await rpc("change_pin", { p_token: session.token, p_old: o.value, p_new: n1.value });
+    session.pinLen = 6; save(LS_SESSION, session);
     await sync(); toast("PIN changed");
-  });
+  }, { locked: !!forced });
 }
 function resetPinSheet(u) {
-  const n1 = h("input", { id: "rNew", type: "password", inputmode: "numeric", maxlength: 6 });
-  sheet("New PIN for " + u.name, [field("New PIN (4–6 digits)", n1, "Tell " + u.name + " the new PIN. They can change it under More."), ], "Set PIN", async () => {
+  const n1 = pinInput("rNew");
+  sheet("New PIN for " + u.name, [field("New PIN (6 digits)", n1, "Tell " + u.name + " the new PIN. They can change it under More.")], "Set PIN", async () => {
+    if (!SIX.test(n1.value)) throw new Error("The PIN must be exactly 6 digits");
     await rpc("reset_pin", { p_token: session.token, p_user_id: u.id, p_pin: n1.value });
     await sync(); toast("PIN for " + u.name + " changed");
   });
 }
 function addUserSheet() {
   const nm = h("input", { id: "aName", autocomplete: "off" });
-  const pin = h("input", { id: "aPin", type: "password", inputmode: "numeric", maxlength: 6 });
+  const pin = pinInput("aPin");
   const adm = h("input", { id: "aAdmin", type: "checkbox" });
-  sheet("Add person", [field("Name", nm), field("PIN (4–6 digits)", pin), h("label", { style: "display:flex;gap:8px;align-items:center" }, adm, "Admin (can add people and reset PINs)")], "Add", async () => {
+  sheet("Add person", [field("Name", nm), field("PIN (6 digits)", pin), h("label", { style: "display:flex;gap:8px;align-items:center" }, adm, "Admin (can add people and reset PINs)")], "Add", async () => {
+    if (!SIX.test(pin.value)) throw new Error("The PIN must be exactly 6 digits");
     await rpc("add_user", { p_token: session.token, p_name: nm.value, p_pin: pin.value, p_is_admin: adm.checked });
     await sync(); toast(nm.value.trim() + " added");
   });
@@ -1267,7 +1275,7 @@ function pickUser(u) {
 }
 function drawPin() {
   const d = $("pinDots"); d.innerHTML = "";
-  for (let i = 0; i < Math.max(4, pinVal.length); i++) d.append(h("i", { class: i < pinVal.length ? "on" : "" }));
+  for (let i = 0; i < 6; i++) d.append(h("i", { class: i < pinVal.length ? "on" : "" }));
   $("pin").value = pinVal;
   $("pinGo").disabled = pinVal.length < 4;
 }
@@ -1276,6 +1284,7 @@ function pinKey(k) {
   if (k === "del") pinVal = pinVal.slice(0, -1);
   else if (/^\d$/.test(k) && pinVal.length < 6) pinVal += k;
   $("pinErr").hidden = true; drawPin();
+  if (pinVal.length === 6) setTimeout(doLogin, 120);
 }
 (function buildKeypad() {
   const kp = $("keypad");
@@ -1297,7 +1306,7 @@ async function doLogin() {
   try {
     const r = await rpc("login", { p_user_id: loginUser.id, p_pin: pinVal });
     if (!r.ok) throw new Error(r.error);
-    session = { token: r.token, user: r.user }; save(LS_SESSION, session);
+    session = { token: r.token, user: r.user, loginAt: Date.now(), pinLen: pinVal.length }; save(LS_SESSION, session);
     haptic(); startApp();
   } catch (e) {
     $("pinErr").textContent = e.message; $("pinErr").hidden = false;
@@ -1321,8 +1330,22 @@ function showTab(name) {
   render();
 }
 let pollTimer;
+const SESSION_DAYS = 14;
+function sessionTooOld() {
+  if (!session) return false;
+  if (!session.loginAt) { session.loginAt = Date.now(); save(LS_SESSION, session); } // logged in before this rule
+  return Date.now() - session.loginAt > SESSION_DAYS * 864e5;
+}
+function checkSessionAge() {
+  if (!sessionTooOld()) return false;
+  const t = session.token; rpc("logout", { p_token: t }).catch(() => {});
+  endSession("For safety, please enter your PIN again (every 2 weeks).");
+  return true;
+}
 function startApp() {
+  if (checkSessionAge()) return;
   $("login").hidden = true; $("app").hidden = false;
+  if (session.pinLen && session.pinLen < 6) setTimeout(() => changePinSheet(true), 400);
   resetEntry();
   render(); sync();
   clearInterval(pollTimer);

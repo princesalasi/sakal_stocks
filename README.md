@@ -15,7 +15,7 @@ The page is hosted on GitHub Pages; the data lives in a free Supabase database.
 1. Open your project on [supabase.com](https://supabase.com) → **SQL Editor** → **New query**.
 2. Open `setup.sql` from this repo, copy everything, paste it into the editor.
 3. In the **last line**, change the name and PIN for the first admin, e.g.
-   `select sakal.create_first_admin('Prince', '2580');`
+   `select sakal.create_first_admin('Prince', '258013');` (6 digits)
 4. Click **Run**. The result should say `Admin Prince created`.
 
 ### 2. Connect the page to the database
@@ -31,7 +31,7 @@ Repo **Settings → Pages → Build and deployment**: Source = *Deploy from a br
 The app is then at `https://<your-user>.github.io/sakal_stocks/`.
 
 ### 4. Add the others
-Log in as the admin → **More → People → + Add person**. Give each person their name and a 4–6 digit PIN.
+Log in as the admin → **More → People → + Add person**. Give each person their name and a 6-digit PIN.
 Everyone can change their own PIN under **More**.
 
 ## How it works
@@ -39,6 +39,8 @@ Everyone can change their own PIN under **More**.
 - **Take out** uses the oldest batch first unless you pick a batch. You cannot take out more than is in stock.
 - **Stock count**: enter the boxes you physically counted for a batch; the difference is logged.
 - **Low-stock warning** (admin, under More): warning shown when stock is at or below the set number of boxes.
+- **PINs have 6 digits.** Anyone still using a shorter PIN is asked to set a 6-digit one after logging in.
+- **Staying logged in:** each phone stays logged in for 2 weeks, then asks for the PIN again.
 - **Wrong PIN 5 times** → that person is locked for 15 minutes. An admin can reset the PIN.
 - **Offline**: the app opens and shows the last loaded data, but entries need internet.
 

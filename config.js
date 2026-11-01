@@ -3,6 +3,6 @@
 // The key here is the PUBLIC "anon" / "publishable" key – it is meant to be visible.
 // NEVER put the "service_role" / "secret" key here.
 window.SAKAL_CONFIG = {
-  url: "",   // e.g. "https://abcdefghijkl.supabase.co"
-  key: ""    // e.g. "sb_publishable_..." or the long "eyJ..." anon key
+  url: "https://lvxvdeharxsvcloexcty.supabase.co",
+  key: "sb_publishable_wQApjDy_BP2Io4ShPvvBWg_llLpjdVY"
 };

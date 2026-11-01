@@ -93,6 +93,11 @@ main { max-width: 640px; margin: 0 auto; padding: calc(env(safe-area-inset-top) 
 .rowf input:focus { color: var(--text); }
 .rowf input[type=date] { -webkit-appearance: none; appearance: none; display: flex; justify-content: flex-end; }
 .rowf input::-webkit-date-and-time-value { text-align: right; }
+.rowf input[type=date] { flex: 0 1 auto; margin-left: auto; min-width: 0; max-width: 72%; }
+.daterows { margin: 0 0 14px; }
+.card .rows { background: var(--fill); }
+.full { grid-column: 1 / -1; }
+input[type=date] { min-width: 0; max-width: 100%; }
 .rowf .chg { font-size: 12px; color: var(--tint); flex: none; letter-spacing: 0; }
 .link { display: block; width: 100%; border: 0; background: none; color: var(--tint); font-size: 17px; padding: 14px; text-align: center; cursor: pointer; }
 
@@ -296,8 +301,10 @@ details.f[open] > summary { margin-bottom: 12px; }
         <div class="field"><label for="fKind">Type</label><select id="fKind"><option value="">All</option><option value="production">Added</option><option value="takeout">Subtracted</option><option value="count">Stock count</option><option value="reversal">Correction</option></select></div>
         <div class="field"><label for="fUser">Person</label><select id="fUser"></select></div>
         <div class="field"><label for="fBatch">Batch</label><input id="fBatch" autocomplete="off" placeholder="Any"></div>
-        <div class="field"><label for="fFrom">From</label><input id="fFrom" type="date"></div>
-        <div class="field"><label for="fTo">To</label><input id="fTo" type="date"></div>
+      </div>
+      <div class="rows daterows">
+        <div class="rowf"><label for="fFrom">From</label><input id="fFrom" type="date"></div>
+        <div class="rowf"><label for="fTo">To</label><input id="fTo" type="date"></div>
       </div>
       <button class="btn secondary small" id="fClear" type="button">Clear filter</button>
     </details>
@@ -318,9 +325,14 @@ details.f[open] > summary { margin-bottom: 12px; }
     <div class="status">&nbsp;</div>
     <div class="card filters" style="padding-bottom:0">
       <div class="field"><label for="tPeriod">Period</label>
-        <select id="tPeriod"><option value="28">Last 4 weeks</option><option value="84" selected>Last 12 weeks</option><option value="365">Last 12 months</option><option value="year">This year</option><option value="all">All time</option></select></div>
+        <select id="tPeriod"><option value="28">Last 4 weeks</option><option value="84" selected>Last 12 weeks</option><option value="365">Last 12 months</option><option value="year">This year</option><option value="all">All time</option><option value="custom">Custom dates</option></select></div>
       <div class="field"><label for="tStep">Show per</label>
         <select id="tStep"><option value="day">Day</option><option value="week" selected>Week</option><option value="month">Month</option></select></div>
+      <div class="rows daterows full" id="tCustom" hidden>
+        <div class="rowf"><label for="tFrom">From</label><input id="tFrom" type="date"></div>
+        <div class="rowf"><label for="tTo">To</label><input id="tTo" type="date"></div>
+      </div>
+      <p class="hint full" id="tMsg" hidden></p>
     </div>
     <div id="trendsEmpty" class="card empty" hidden>No entries in this period yet.</div>
     <div id="trendsBody">
@@ -782,9 +794,16 @@ function bucketTitle(key, step) {
 }
 function renderTrends(D) {
   const per = $("tPeriod").value, step = $("tStep").value;
-  const end = today();
+  let end = today();
   let start;
-  if (per === "all") start = db.movements.reduce((a, m) => m.entry_date < a ? m.entry_date : a, end);
+  $("tCustom").hidden = per !== "custom"; $("tMsg").hidden = true;
+  const firstDay = db.movements.reduce((a, m) => m.entry_date < a ? m.entry_date : a, end);
+  if (per === "custom") {
+    start = $("tFrom").value || firstDay;
+    end = $("tTo").value || today();
+    if (start > end) { const x = start; start = end; end = x; }
+  }
+  else if (per === "all") start = firstDay;
   else if (per === "year") start = end.slice(0, 4) + "-01-01";
   else { const d = new Date(); d.setDate(d.getDate() - (+per - 1)); start = isoOf(d); }
   // list every bucket between start and end
@@ -796,7 +815,12 @@ function renderTrends(D) {
   }
   const inRange = db.movements.filter(m => m.entry_date >= start && m.entry_date <= end);
   $("trendsEmpty").hidden = inRange.length > 0; $("trendsBody").hidden = inRange.length === 0;
-  if (!inRange.length || keys.length > 400) return;
+  if (keys.length > 400) {
+    $("trendsBody").hidden = true; $("trendsEmpty").hidden = true;
+    $("tMsg").textContent = "That's too many " + step + "s to show. Choose “Show per: " + (step === "day" ? "Week" : "Month") + "” or a shorter period.";
+    $("tMsg").hidden = false; return;
+  }
+  if (!inRange.length) return;
   const idx = {}; keys.forEach((k, i) => idx[k] = i);
   const zero = () => keys.map(() => 0);
   const prod = { ripe: zero(), unripe: zero() }, out = { ripe: zero(), unripe: zero() };
@@ -1190,7 +1214,14 @@ $("histMore").onclick = () => { histLimit += 200; render(); };
 $("sep").value = prefs.sep || ((1.5).toLocaleString().includes(",") ? ";" : ",");
 $("sep").onchange = () => { prefs.sep = $("sep").value; save(LS_PREFS, prefs); };
 $("exportBtn").onclick = exportCSV;
-$("tPeriod").onchange = render; $("tStep").onchange = render;
+$("tPeriod").onchange = () => {
+  if ($("tPeriod").value === "custom" && !$("tFrom").value) {
+    const d = new Date(); d.setDate(d.getDate() - 27); $("tFrom").value = isoOf(d); $("tTo").value = today();
+  }
+  render();
+};
+$("tStep").onchange = render;
+["tFrom", "tTo"].forEach(id => $(id).addEventListener("change", render));
 $("changePinBtn").onclick = changePinSheet;
 $("logoutBtn").onclick = async () => { if (!confirm("Log out?")) return; try { await rpc("logout", { p_token: session.token }); } catch (e) {} endSession(); };
 $("addUserBtn").onclick = addUserSheet;

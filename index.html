@@ -83,7 +83,8 @@ main { max-width: 640px; margin: 0 auto; padding: calc(env(safe-area-inset-top) 
 .op { border: 0; border-radius: 16px; padding: 15px 8px; font-size: 18px; font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
 .op svg { width: 20px; height: 20px; }
 .op.add { background: var(--tint); color: var(--tint-ink); }
-.op.sub { background: var(--fill2); color: var(--text); }
+.op.sub { background: var(--red); color: #fff; }
+@media (prefers-color-scheme: dark) { .op.sub { background: #d63a32; } }
 .op:disabled { opacity: .4; cursor: default; }
 .rows { margin-top: 14px; border-radius: 14px; background: var(--card2); overflow: hidden; }
 .rowf { display: flex; align-items: center; gap: 12px; padding: 0 14px; min-height: 48px; position: relative; }
@@ -568,27 +569,39 @@ const ICON = { production: "+", takeout: "−", count: "=", reversal: "↺" };
 function entryEl(m, D, withAction) {
   const rev = D.reversedBy[m.id];
   const ref = m.ref_id ? D.byId[m.ref_id] : null;
-  const sub = ["Batch " + m.batch];
+  const isOut = m.kind === "takeout" || (m.kind === "reversal" && ref && ref.kind === "takeout");
+  const sub = isOut ? [] : ["Batch " + m.batch];
   if (m.kind === "takeout" && m.reason) sub.push(cap(m.reason) + (m.customer ? " – " + m.customer : ""));
   else if (m.customer) sub.push(m.customer);
   if (m.kind === "reversal" && ref) sub.push("undoes #" + ref.id);
   if (m.note) sub.push(m.note);
   const tags = [];
   if (rev) tags.push(h("span", { class: "tag undone" }, "Undone"));
-  if (m.group_id && m.kind === "takeout") {
-    const parts = db.movements.filter(x => x.group_id === m.group_id && x.kind === "takeout").length;
-    if (parts > 1) tags.push(h("span", { class: "tag" }, "split over " + parts + " batches"));
-  }
+
   const canUndo = withAction && !rev && m.kind !== "reversal" && !(m.kind === "count" && m.ref_id);
   return h("div", { class: "entry" + (rev ? " struck" : "") },
     h("div", { class: "ico " + m.product, "aria-hidden": "true" }, ICON[m.kind]),
     h("div", { class: "main" },
       h("div", { class: "ttl" }, KIND[m.kind] + " · " + PRODUCTS[m.product], tags),
-      h("div", { class: "sub" }, sub.join(" · ")),
+      sub.length ? h("div", { class: "sub" }, sub.join(" · ")) : null,
       h("div", { class: "sub" }, (D.userName[m.user_id] || "?") + " · " + stamp(m.logged_at) + " · #" + m.id)),
     h("div", null,
       h("div", { class: "qtyv " + (m.boxes > 0 ? "pos" : m.boxes < 0 ? "neg" : "") }, signed(m.boxes)),
       canUndo ? h("button", { class: "btn small secondary needs-net", style: "margin-top:6px", type: "button", disabled: !online, onclick: () => undoSheet(m, D) }, "Undo") : null));
+}
+
+// One subtraction can be booked on several batches; show it as one line.
+function collapseGroups(list, D) {
+  const seen = {}, out = [];
+  for (const m of list) {
+    let key = null;
+    if (m.kind === "takeout" && m.group_id) key = "t:" + m.group_id;
+    else if (m.kind === "reversal" && m.ref_id && D.byId[m.ref_id] && D.byId[m.ref_id].kind === "takeout" && D.byId[m.ref_id].group_id) key = "r:" + D.byId[m.ref_id].group_id;
+    if (!key) { out.push(m); continue; }
+    if (seen[key]) { seen[key].boxes += m.boxes; continue; }
+    out.push(seen[key] = Object.assign({}, m));
+  }
+  return out;
 }
 
 /* ---------- stock page ---------- */
@@ -619,7 +632,7 @@ function renderStock(D) {
   $("panelFor").textContent = PRODUCT_LONG[prefs.product];
   updateBatchHint(D);
   const rc = $("recent"); rc.innerHTML = "";
-  const last = db.movements.slice(-5).reverse();
+  const last = collapseGroups(db.movements.slice(-15).reverse(), D).slice(0, 5);
   if (!last.length) rc.append(h("div", { class: "empty" }, "Nothing entered yet."));
   last.forEach(m => rc.append(entryEl(m, D, false)));
 }
@@ -640,13 +653,7 @@ function resetEntry() {
 }
 function updateBatchHint(D) {
   const p = prefs.product, hint = $("batchHint");
-  if (!batchTouched) {
-    const old = batchesWithStock(D || derive(), p);
-    hint.textContent = "Add goes to batch " + $("eBatch").value + ". Subtract takes from the oldest batch first" + (old.length ? " (" + old[0].batch + ")." : ".");
-  } else {
-    const b = (D || derive()).batches.find(x => x.product === p && x.batch === $("eBatch").value.trim());
-    hint.textContent = "Using batch " + ($("eBatch").value.trim() || "–") + " for add and subtract" + (b ? " · " + b.boxes + " in stock" : "") + ".";
-  }
+  hint.textContent = "Batch is used when adding. Subtract doesn't need a batch.";
 }
 function readQty() {
   const s = $("qty").value.trim();
@@ -679,17 +686,10 @@ function doSubtract() {
   let n;
   try { n = readQty(); } catch (e) { toast(e.message); return; }
   const D = derive(), p = prefs.product;
-  const batch = batchTouched ? $("eBatch").value.trim() : null;
-  const avail = batch ? ((D.batches.find(b => b.product === p && b.batch === batch) || { boxes: 0 }).boxes) : D.stock[p];
-  if (n > avail) { nudge($("qty")); toast("Only " + avail + " box" + (avail === 1 ? "" : "es") + " of " + PRODUCTS[p].toLowerCase() + (batch ? " batch " + batch : "") + " in stock", 4000); return; }
-  // where the boxes will come from
-  let from;
-  if (batch) from = "From batch " + batch;
-  else {
-    let left = n; const parts = [];
-    for (const b of batchesWithStock(D, p)) { if (left <= 0) break; const t = Math.min(left, b.boxes); parts.push(b.batch + " (" + t + ")"); left -= t; }
-    from = "From batch " + parts.join(", ");
-  }
+  const batch = null; // subtract never asks for a batch; the database takes the oldest stock first
+  const avail = D.stock[p];
+  if (n > avail) { nudge($("qty")); toast("Only " + avail + " box" + (avail === 1 ? "" : "es") + " of " + PRODUCTS[p].toLowerCase() + " in stock", 4000); return; }
+  const from = nf.format(avail) + " in stock → " + nf.format(avail - n) + " after";
   const cust = h("input", { id: "sCust", autocomplete: "off", placeholder: "Optional" });
   const s = sheet("Subtract " + n + " box" + (n === 1 ? "" : "es"), [
     h("p", { class: "small muted", style: "margin:-6px 4px 14px" }, PRODUCT_LONG[p] + " · " + from),
@@ -767,7 +767,7 @@ function renderHistory(D) {
     h("tr", null, h("td", null, nf.format(list.length)), h("td", { class: "n pos" }, nf.format(prod)), h("td", { class: "n neg" }, nf.format(out)), h("td", { class: "n" }, signed(adj)))));
   const box = $("histList"); box.innerHTML = "";
   if (!list.length) { box.append(h("div", { class: "empty" }, "No entries.")); $("histMore").hidden = true; return; }
-  const shown = list.slice().sort((a, b) => b.entry_date.localeCompare(a.entry_date) || b.id - a.id).slice(0, histLimit);
+  const shown = collapseGroups(list.slice().sort((a, b) => b.entry_date.localeCompare(a.entry_date) || b.id - a.id), D).slice(0, histLimit);
   let lastDay = null, group = null;
   shown.forEach(m => {
     if (m.entry_date !== lastDay) { lastDay = m.entry_date; box.append(h("div", { class: "day" }, niceDay(m.entry_date))); group = h("div", { class: "group" }); box.append(group); }
@@ -1101,8 +1101,8 @@ function undoSheet(m, D) {
   const parts = m.group_id && m.kind === "takeout" ? db.movements.filter(x => x.group_id === m.group_id && x.kind === "takeout") : [m];
   const why = h("input", { id: "uWhy", autocomplete: "off", placeholder: "e.g. typed 15 instead of 5" });
   sheet("Undo entry #" + m.id,
-    [h("div", { class: "card", style: "box-shadow:none;border:.5px solid var(--sep)" }, parts.map(p => entryEl(p, D, false))),
-     h("p", { class: "small muted" }, "This adds a correction entry with the opposite amount" + (parts.length > 1 ? " for all " + parts.length + " batches of this take-out" : "") + ". The original stays in the log. If the amount was wrong, enter the right amount again afterwards."),
+    [h("div", { class: "card", style: "box-shadow:none;border:.5px solid var(--sep)" }, entryEl(m, D, false)),
+     h("p", { class: "small muted" }, "This adds a correction entry with the opposite amount. The original stays in the log. If the amount was wrong, enter the right amount again afterwards."),
      field("What was wrong? (required)", why)],
     "Undo entry", async () => {
       if (!why.value.trim()) { nudge(why); throw new Error("Write what was wrong"); }

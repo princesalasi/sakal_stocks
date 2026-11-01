@@ -1090,8 +1090,9 @@ function undoSheet(m, D) {
   sheet("Undo entry #" + m.id,
     [h("div", { class: "card", style: "box-shadow:none;border:.5px solid var(--sep)" }, parts.map(p => entryEl(p, D, false))),
      h("p", { class: "small muted" }, "This adds a correction entry with the opposite amount" + (parts.length > 1 ? " for all " + parts.length + " batches of this take-out" : "") + ". The original stays in the log. If the amount was wrong, enter the right amount again afterwards."),
-     field("What was wrong? (optional)", why)],
+     field("What was wrong? (required)", why)],
     "Undo entry", async () => {
+      if (!why.value.trim()) { nudge(why); throw new Error("Write what was wrong"); }
       await rpc("reverse_entry", { p_token: session.token, p_id: m.id, p_note: why.value });
       await sync(); toast("Entry #" + m.id + " undone");
     }, { danger: true });

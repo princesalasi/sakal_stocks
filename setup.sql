@@ -275,12 +275,13 @@ begin
   return json_build_object('ok', true, 'id', new_id, 'difference', p_counted - cur);
 end $$;
 
--- Undo a wrong entry by adding the opposite entry. The original stays in the log. Reason is optional.
+-- Undo a wrong entry by adding the opposite entry. The original stays in the log.
 create or replace function public.reverse_entry(p_token uuid, p_id bigint, p_note text) returns json
 language plpgsql security definer set search_path = sakal, public as $$
 declare u sakal.users; m sakal.movements; r record; n int := 0;
 begin
   u := sakal.me(p_token);
+  if p_note is null or btrim(p_note) = '' then raise exception 'Write why this entry is wrong'; end if;
   perform sakal.lock_stock();
   select * into m from sakal.movements where id = p_id;
   if not found then raise exception 'Entry not found'; end if;
@@ -296,12 +297,12 @@ begin
         raise exception 'Cannot reverse: boxes of batch % were already taken out. Reverse those take-outs first, or do a stock count.', r.batch;
       end if;
       insert into sakal.movements(user_id, entry_date, product, batch, kind, boxes, note, ref_id, group_id)
-      values (u.id, current_date, r.product, r.batch, 'reversal', -r.boxes, nullif(btrim(p_note), ''), r.id, null);
+      values (u.id, current_date, r.product, r.batch, 'reversal', -r.boxes, btrim(p_note), r.id, null);
       n := n + 1;
     else
       -- a count with no difference: log that it was withdrawn
       insert into sakal.movements(user_id, entry_date, product, batch, kind, boxes, note, ref_id)
-      values (u.id, current_date, r.product, r.batch, 'count', 0, 'Withdrawn' || coalesce(': ' || nullif(btrim(p_note), ''), ''), r.id);
+      values (u.id, current_date, r.product, r.batch, 'count', 0, 'Withdrawn: ' || btrim(p_note), r.id);
       n := n + 1;
     end if;
   end loop;

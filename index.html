@@ -115,7 +115,11 @@ input[type=date] { min-width: 0; max-width: 100%; }
 .entry .ttl { font-weight: 600; font-size: 16px; }
 .entry .sub { font-size: 14px; color: var(--text2); margin-top: 1px; overflow-wrap: anywhere; letter-spacing: 0; }
 .entry .qtyv { font-weight: 600; font-size: 17px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.entry.struck .ttl, .entry.struck .qtyv { text-decoration: line-through; opacity: .5; }
+.entry.struck { background: rgba(215,0,21,.07); }
+@media (prefers-color-scheme: dark) { .entry.struck { background: rgba(255,105,97,.12); } }
+.entry.struck .ttl, .entry.struck .qtyv, .entry.struck .qtyv.pos { text-decoration: line-through; color: var(--red); }
+.entry.struck .ico { background: var(--red); }
+.tag.undone { background: var(--red); color: #fff; }
 .tag { display: inline-block; font-size: 11px; padding: 1px 7px; border-radius: 9px; background: var(--fill); color: var(--text2); margin-left: 6px; font-weight: 500; vertical-align: 2px; letter-spacing: 0; }
 .tag.warn { background: var(--orange-bg); color: var(--orange-ink); }
 .day { font-size: 13px; text-transform: uppercase; color: var(--text2); margin: 22px 16px 7px; letter-spacing: .02em; }
@@ -133,6 +137,11 @@ input[type=date] { min-width: 0; max-width: 100%; }
 .field label, .lbl { display: block; font-size: 13px; color: var(--text2); margin: 0 4px 6px; letter-spacing: 0; }
 .field input, .field select { width: 100%; min-width: 0; border: 0; border-radius: 12px; background: var(--fill); padding: 12px 14px; font-size: 17px; outline: none; }
 .field input:focus, .field select:focus { box-shadow: 0 0 0 2px var(--tint) inset; }
+.blk { margin-bottom: 16px; }
+#cOther { margin-top: 8px; }
+.sheet .rows { background: var(--card); margin-bottom: 14px; }
+@media (prefers-color-scheme: dark) { .sheet .rows { background: var(--card2); } }
+.sheet .stepper + .hint, .field .hint { margin-top: 6px; }
 .grid2 { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 0 10px; }
 .hint { font-size: 13px; color: var(--text2); margin: 6px 4px 0; letter-spacing: 0; }
 .err { color: var(--red); font-size: 15px; margin: 4px 4px 10px; }
@@ -558,7 +567,7 @@ function entryEl(m, D, withAction) {
   if (m.kind === "reversal" && ref) sub.push("undoes #" + ref.id);
   if (m.note) sub.push(m.note);
   const tags = [];
-  if (rev) tags.push(h("span", { class: "tag" }, "undone"));
+  if (rev) tags.push(h("span", { class: "tag undone" }, "Undone"));
   if (m.group_id && m.kind === "takeout") {
     const parts = db.movements.filter(x => x.group_id === m.group_id && x.kind === "takeout").length;
     if (parts > 1) tags.push(h("span", { class: "tag" }, "split over " + parts + " batches"));
@@ -1057,14 +1066,16 @@ function countSheet() {
   const pseg = seg(PRODUCTS, product, v => { product = v; fill(); upd(); });
   bsel.addEventListener("change", upd); other.addEventListener("input", upd); counted.inp.addEventListener("input", upd);
   const date = h("input", { id: "cDate", type: "date", value: today(), max: today() });
-  const note = h("input", { id: "cNote", autocomplete: "off", placeholder: "optional" });
+  const note = h("input", { id: "cNote", autocomplete: "off", placeholder: "Optional" });
   fill(); upd();
   sheet("Stock count",
     [h("p", { class: "small muted", style: "margin-top:0" }, "Count the boxes on the shelf for one batch. The difference to the recorded number is logged."),
      h("div", { class: "blk" }, h("span", { class: "lbl" }, "Product"), pseg),
      h("div", { class: "field" }, h("label", { for: "cBatch" }, "Batch"), bsel, other),
      h("div", { class: "field" }, h("label", { for: "cBoxes" }, "Boxes counted"), counted.el, info),
-     h("div", { class: "grid2" }, field("Date", date), field("Note", note))],
+     h("div", { class: "rows" },
+       h("div", { class: "rowf" }, h("label", { for: "cDate" }, "Date"), date),
+       h("div", { class: "rowf" }, h("label", { for: "cNote" }, "Note"), note))],
     "Save count", async () => {
       const c = readBoxes(counted.inp, "the boxes counted");
       if (!curBatch()) throw new Error("Choose a batch");
@@ -1079,9 +1090,8 @@ function undoSheet(m, D) {
   sheet("Undo entry #" + m.id,
     [h("div", { class: "card", style: "box-shadow:none;border:.5px solid var(--sep)" }, parts.map(p => entryEl(p, D, false))),
      h("p", { class: "small muted" }, "This adds a correction entry with the opposite amount" + (parts.length > 1 ? " for all " + parts.length + " batches of this take-out" : "") + ". The original stays in the log. If the amount was wrong, enter the right amount again afterwards."),
-     field("Why is it wrong? (required)", why)],
+     field("What was wrong? (optional)", why)],
     "Undo entry", async () => {
-      if (!why.value.trim()) throw new Error("Write why the entry is wrong");
       await rpc("reverse_entry", { p_token: session.token, p_id: m.id, p_note: why.value });
       await sync(); toast("Entry #" + m.id + " undone");
     }, { danger: true });

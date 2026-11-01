@@ -19,8 +19,8 @@
   --bg: #f2f2f7; --card: #ffffff; --card2: #f2f2f7; --text: #000000; --text2: #6e6e73; --text3: #8e8e93;
   --sep: rgba(60,60,67,.18); --fill: rgba(118,118,128,.12); --fill2: rgba(118,118,128,.2);
   --tint: #1f8a3b; --tint-ink: #ffffff; --red: #d70015; --green: #1a7f37; --orange-bg: #fff1d6; --orange-ink: #8a4b00;
-  --ripe: #c4783a; --unripe: #2f9c86; --grid: rgba(60,60,67,.12);
-  --ripe-card: linear-gradient(155deg, #b98250 0%, #94653d 100%);
+  --ripe: #d9609c; --unripe: #007f66; --grid: rgba(60,60,67,.12);
+  --ripe-card: linear-gradient(155deg, #e070aa 0%, #c2457f 100%);
   --unripe-card: linear-gradient(155deg, #52ae9a 0%, #3b8d7b 100%);
   --bar: rgba(249,249,249,.78); --scrim: rgba(0,0,0,.32);
   --shadow: 0 1px 2px rgba(0,0,0,.06), 0 4px 14px rgba(0,0,0,.06);
@@ -31,8 +31,8 @@
     --bg: #000000; --card: #1c1c1e; --card2: #2c2c2e; --text: #ffffff; --text2: #98989f; --text3: #8d8d93;
     --sep: rgba(84,84,88,.6); --fill: rgba(118,118,128,.24); --fill2: rgba(118,118,128,.36);
     --tint: #30b350; --tint-ink: #000000; --red: #ff6961; --green: #32d74b; --orange-bg: #3d2a0a; --orange-ink: #ffcf7a;
-    --ripe: #c27a3f; --unripe: #2e9a84; --grid: rgba(84,84,88,.45);
-    --ripe-card: linear-gradient(155deg, #a87648 0%, #7f5634 100%);
+    --ripe: #d65a98; --unripe: #00876e; --grid: rgba(84,84,88,.45);
+    --ripe-card: linear-gradient(155deg, #c95a93 0%, #9e3767 100%);
     --unripe-card: linear-gradient(155deg, #4a9f8c 0%, #327c6c 100%);
     --bar: rgba(22,22,24,.78); --scrim: rgba(0,0,0,.5);
     --shadow: none;
@@ -1135,7 +1135,7 @@ async function simpleAction(fn, args, question) {
 
 /* ================= PDF of the trends page (no libraries) ================= */
 // Charts are drawn in light colours for printing, whatever the phone's theme.
-const PRINT_COLORS = { ripe: "#c4783a", unripe: "#2f9c86", grid: "#e3e3e8", text2: "#6e6e73", card: "#ffffff", text: "#000000" };
+const PRINT_COLORS = { ripe: "#d9609c", unripe: "#007f66", grid: "#e3e3e8", text2: "#6e6e73", card: "#ffffff", text: "#000000" };
 function svgToJpeg(svg) {
   return new Promise((resolve, reject) => {
     const clone = svg.cloneNode(true);

@@ -570,11 +570,13 @@ function entryEl(m, D, withAction) {
   const rev = D.reversedBy[m.id];
   const ref = m.ref_id ? D.byId[m.ref_id] : null;
   const isOut = m.kind === "takeout" || (m.kind === "reversal" && ref && ref.kind === "takeout");
-  const sub = isOut ? [] : ["Batch " + m.batch];
+  const isCount = m.kind === "count" || (m.kind === "reversal" && ref && ref.kind === "count");
+  const sub = isOut || isCount ? [] : ["Batch " + m.batch];
   if (m.kind === "takeout" && m.reason) sub.push(cap(m.reason) + (m.customer ? " – " + m.customer : ""));
   else if (m.customer) sub.push(m.customer);
   if (m.kind === "reversal" && ref) sub.push("undoes #" + ref.id);
-  if (m.note) sub.push(m.note);
+  // the server puts the per-batch numbers first; the total is what people counted
+  if (m.note) sub.push(m.kind === "count" ? m.note.replace(/^Counted \d+, recorded -?\d+ – (?=Total )/, "") : m.note);
   const tags = [];
   if (rev) tags.push(h("span", { class: "tag undone" }, "Undone"));
 
@@ -1055,45 +1057,55 @@ function readBoxes(inp, label) {
 }
 function field(label, input, hint) { return h("div", { class: "field" }, h("label", { for: input.id }, label), input, hint ? h("div", { class: "hint" }, hint) : null); }
 
+// Turn a counted total into per-batch counts (the database keeps stock per batch; nobody needs to see that).
+function countPlan(D, product, target, date) {
+  const pos = batchesWithStock(D, product), plan = [];
+  let left = target - D.stock[product];
+  D.batches.filter(b => b.product === product && b.boxes < 0).forEach(b => { plan.push({ batch: b.batch, counted: 0 }); left += b.boxes; });
+  const newest = pos[pos.length - 1];
+  if (left > 0) plan.push(newest ? { batch: newest.batch, counted: newest.boxes + left } : { batch: defaultBatch(date), counted: left });
+  else if (left < 0) {
+    let need = -left;
+    const one = pos.find(b => b.boxes >= need); // one log line whenever one batch can cover it
+    for (const b of one ? [one] : pos) {
+      if (!need) break;
+      const take = Math.min(need, b.boxes);
+      plan.push({ batch: b.batch, counted: b.boxes - take }); need -= take;
+    }
+  }
+  else if (!plan.length) plan.push(newest ? { batch: newest.batch, counted: newest.boxes } : { batch: defaultBatch(date), counted: 0 }); // matches: still log that it was counted
+  return plan;
+}
+
 function countSheet() {
   const D = derive();
   let product = prefs.product;
-  const bsel = h("select", { id: "cBatch" });
-  const other = h("input", { id: "cOther", autocomplete: "off", placeholder: "batch number", hidden: true });
   const counted = stepper("cBoxes", "");
   const info = h("div", { class: "hint" });
-  const curBatch = () => bsel.value === "__other" ? other.value.trim() : bsel.value;
-  const recorded = () => { const b = D.batches.find(x => x.product === product && x.batch === curBatch()); return b ? b.boxes : 0; };
-  const fill = () => {
-    bsel.innerHTML = "";
-    D.batches.filter(b => b.product === product && b.boxes !== 0).sort((a, b) => a.batch.localeCompare(b.batch))
-      .forEach(b => bsel.append(h("option", { value: b.batch }, "Batch " + b.batch + " – recorded " + b.boxes)));
-    bsel.append(h("option", { value: "__other" }, "Other batch…"));
-    other.hidden = bsel.value !== "__other";
-  };
   const upd = () => {
-    other.hidden = bsel.value !== "__other";
-    const r = recorded(), c = counted.inp.value.trim() === "" ? null : parseInt(counted.inp.value, 10);
+    const r = D.stock[product], c = counted.inp.value.trim() === "" ? null : parseInt(counted.inp.value, 10);
     info.textContent = "Recorded: " + nf.format(r) + (c === null || isNaN(c) ? "" : " → difference: " + signed(c - r));
   };
-  const pseg = seg(PRODUCTS, product, v => { product = v; fill(); upd(); });
-  bsel.addEventListener("change", upd); other.addEventListener("input", upd); counted.inp.addEventListener("input", upd);
+  const pseg = seg(PRODUCTS, product, v => { product = v; upd(); });
+  counted.inp.addEventListener("input", upd);
   const date = h("input", { id: "cDate", type: "date", value: today(), max: today() });
   const note = h("input", { id: "cNote", autocomplete: "off", placeholder: "Optional" });
-  fill(); upd();
+  upd();
   sheet("Stock count",
-    [h("p", { class: "small muted", style: "margin-top:0" }, "Count the boxes on the shelf for one batch. The difference to the recorded number is logged."),
+    [h("p", { class: "small muted", style: "margin-top:0" }, "Count the boxes on the shelf. Your count replaces the recorded number, and the difference is logged."),
      h("div", { class: "blk" }, h("span", { class: "lbl" }, "Product"), pseg),
-     h("div", { class: "field" }, h("label", { for: "cBatch" }, "Batch"), bsel, other),
      h("div", { class: "field" }, h("label", { for: "cBoxes" }, "Boxes counted"), counted.el, info),
      h("div", { class: "rows" },
        h("div", { class: "rowf" }, h("label", { for: "cDate" }, "Date"), date),
        h("div", { class: "rowf" }, h("label", { for: "cNote" }, "Note"), note))],
     "Save count", async () => {
       const c = readBoxes(counted.inp, "the boxes counted");
-      if (!curBatch()) throw new Error("Choose a batch");
-      const r = await rpc("stock_count", { p_token: session.token, p_product: product, p_batch: curBatch(), p_counted: c, p_note: note.value, p_date: date.value });
-      await sync(); toast(r.difference ? "Count saved – difference " + signed(r.difference) : "Count saved – matches");
+      await sync(); // work from the latest stock, also when saving again after a lost connection
+      const now = derive(), was = now.stock[product];
+      const text = "Total " + c + ", was " + was + (note.value.trim() ? " – " + note.value.trim() : "");
+      for (const x of countPlan(now, product, c, date.value))
+        await rpc("stock_count", { p_token: session.token, p_product: product, p_batch: x.batch, p_counted: x.counted, p_note: text, p_date: date.value });
+      await sync(); toast(c !== was ? "Count saved – difference " + signed(c - was) : "Count saved – matches");
     });
 }
 

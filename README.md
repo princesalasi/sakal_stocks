@@ -37,7 +37,7 @@ Everyone can change their own PIN under **More**.
 ## How it works
 - **Batch** defaults to year + calendar week of the chosen date (e.g. `2644` = week 44 of 2026). It can be changed.
 - **Take out** uses the oldest batch first unless you pick a batch. You cannot take out more than is in stock.
-- **Stock count**: enter the boxes you physically counted for a batch; the difference is logged.
+- **Stock count**: choose ripe or unripe and enter the boxes you counted; that replaces the recorded number and the difference is logged. No batches.
 - **Low-stock warning** (admin, under More): warning shown when stock is at or below the set number of boxes.
 - **PINs have 6 digits.** Anyone still using a shorter PIN is asked to set a 6-digit one after logging in.
 - **Staying logged in:** each phone stays logged in for 2 weeks, then asks for the PIN again.

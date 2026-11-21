@@ -756,17 +756,19 @@ function filtered(D) {
 }
 function renderHistory(D) {
   const us = $("fUser"), cur = us.value; us.innerHTML = "";
-  us.append(h("option", { value: "" }, "All"), db.users.map(u => h("option", { value: String(u.id) }, u.name)));
+  us.append(h("option", { value: "" }, "All"), ...db.users.map(u => h("option", { value: String(u.id) }, u.name)));
   us.value = cur;
   const f = histFilter(); const active = Object.values(f).filter(Boolean).length;
   $("filterSummary").textContent = active ? active + " filter" + (active > 1 ? "s" : "") + " on" : "All entries";
   const list = filtered(D);
+  // undone entries and their corrections cancel out, so leave both out of the totals
+  const counts = f.kind === "reversal" ? list : list.filter(m => !D.reversedBy[m.id] && m.kind !== "reversal" && !(m.kind === "count" && m.ref_id));
   let prod = 0, out = 0, adj = 0;
-  list.forEach(m => { const k = D.effKind(m); if (k === "production") prod += m.boxes; else if (k === "takeout") out -= m.boxes; else if (k === "count") adj += m.boxes; });
+  counts.forEach(m => { const k = D.effKind(m); if (k === "production") prod += m.boxes; else if (k === "takeout") out -= m.boxes; else if (k === "count") adj += m.boxes; });
   $("histSum").innerHTML = "";
   $("histSum").append(h("table", { class: "t" },
     h("tr", null, h("th", null, "Entries"), h("th", { class: "n" }, "Added"), h("th", { class: "n" }, "Subtracted"), h("th", { class: "n" }, "Count adj.")),
-    h("tr", null, h("td", null, nf.format(list.length)), h("td", { class: "n pos" }, nf.format(prod)), h("td", { class: "n neg" }, nf.format(out)), h("td", { class: "n" }, signed(adj)))));
+    h("tr", null, h("td", null, nf.format(collapseGroups(counts, D).length)), h("td", { class: "n pos" }, nf.format(prod)), h("td", { class: "n neg" }, nf.format(out)), h("td", { class: "n" }, signed(adj)))));
   const box = $("histList"); box.innerHTML = "";
   if (!list.length) { box.append(h("div", { class: "empty" }, "No entries.")); $("histMore").hidden = true; return; }
   const shown = collapseGroups(list.slice().sort((a, b) => b.entry_date.localeCompare(a.entry_date) || b.id - a.id), D).slice(0, histLimit);

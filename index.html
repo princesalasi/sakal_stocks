@@ -309,7 +309,8 @@ details.f[open] > summary { margin-bottom: 12px; }
       <div class="filters">
         <div class="field"><label for="fProduct">Product</label><select id="fProduct"><option value="">All</option><option value="ripe">Ripe</option><option value="unripe">Unripe</option></select></div>
         <div class="field"><label for="fKind">Type</label><select id="fKind"><option value="">All</option><option value="production">Added</option><option value="takeout">Subtracted</option><option value="count">Stock count</option><option value="reversal">Correction</option><option value="undone">Undone</option></select></div>
-        <div class="field" style="grid-column:1 / -1"><label for="fUser">Person</label><select id="fUser"></select></div>
+        <div class="field"><label for="fUser">Person</label><select id="fUser"></select></div>
+        <div class="field"><label for="fBatch">Batch</label><input id="fBatch" autocomplete="off" placeholder="Any"></div>
       </div>
       <div class="rows daterows">
         <div class="rowf"><label for="fFrom">From</label><input id="fFrom" type="date"></div>
@@ -737,13 +738,13 @@ function productSheet(p) {
 /* ---------- history ---------- */
 let histLimit = 80;
 function histFilter() {
-  return { product: $("fProduct").value, kind: $("fKind").value, user: $("fUser").value, from: $("fFrom").value, to: $("fTo").value };
+  return { product: $("fProduct").value, kind: $("fKind").value, user: $("fUser").value, batch: $("fBatch").value.trim(), from: $("fFrom").value, to: $("fTo").value };
 }
 function filtered(D) {
   const f = histFilter();
   return db.movements.filter(m =>
     (!f.product || m.product === f.product) && (!f.kind || (f.kind === "undone" ? !!D.reversedBy[m.id] : m.kind === f.kind && (f.kind === "reversal" || (!D.reversedBy[m.id] && !m.ref_id)))) && (!f.user || String(m.user_id) === f.user) &&
-    (!f.from || m.entry_date >= f.from) && (!f.to || m.entry_date <= f.to));
+    (!f.batch || (m.kind === "production" && m.batch.toLowerCase().includes(f.batch.toLowerCase()))) && (!f.from || m.entry_date >= f.from) && (!f.to || m.entry_date <= f.to));
 }
 function renderHistory(D) {
   const us = $("fUser"), cur = us.value; us.innerHTML = "";
@@ -1372,8 +1373,8 @@ $("qty").addEventListener("keydown", e => { if (e.key === "Enter") doAdd(); });
 $("eDate").addEventListener("change", () => { if (!$("eDate").value) $("eDate").value = today(); if (!batchTouched) $("eBatch").value = defaultBatch($("eDate").value); updateBatchHint(); });
 $("eBatch").addEventListener("input", () => { batchTouched = $("eBatch").value.trim() !== defaultBatch($("eDate").value); updateBatchHint(); });
 $("seeAll").onclick = () => showTab("history");
-["fProduct", "fKind", "fUser", "fFrom", "fTo"].forEach(id => $(id).addEventListener("input", () => { histLimit = 80; render(); }));
-$("fClear").onclick = () => { ["fProduct", "fKind", "fUser", "fFrom", "fTo"].forEach(id => $(id).value = ""); render(); };
+["fProduct", "fKind", "fUser", "fBatch", "fFrom", "fTo"].forEach(id => $(id).addEventListener("input", () => { histLimit = 80; render(); }));
+$("fClear").onclick = () => { ["fProduct", "fKind", "fUser", "fBatch", "fFrom", "fTo"].forEach(id => $(id).value = ""); render(); };
 $("histMore").onclick = () => { histLimit += 200; render(); };
 $("exportBtn").onclick = exportCSV;
 $("tPeriod").onchange = () => {

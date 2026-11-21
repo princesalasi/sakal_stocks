@@ -309,8 +309,7 @@ details.f[open] > summary { margin-bottom: 12px; }
       <div class="filters">
         <div class="field"><label for="fProduct">Product</label><select id="fProduct"><option value="">All</option><option value="ripe">Ripe</option><option value="unripe">Unripe</option></select></div>
         <div class="field"><label for="fKind">Type</label><select id="fKind"><option value="">All</option><option value="production">Added</option><option value="takeout">Subtracted</option><option value="count">Stock count</option><option value="reversal">Correction</option></select></div>
-        <div class="field"><label for="fUser">Person</label><select id="fUser"></select></div>
-        <div class="field"><label for="fBatch">Batch</label><input id="fBatch" autocomplete="off" placeholder="Any"></div>
+        <div class="field" style="grid-column:1 / -1"><label for="fUser">Person</label><select id="fUser"></select></div>
       </div>
       <div class="rows daterows">
         <div class="rowf"><label for="fFrom">From</label><input id="fFrom" type="date"></div>
@@ -569,9 +568,7 @@ const ICON = { production: "+", takeout: "−", count: "=", reversal: "↺" };
 function entryEl(m, D, withAction) {
   const rev = D.reversedBy[m.id];
   const ref = m.ref_id ? D.byId[m.ref_id] : null;
-  const isOut = m.kind === "takeout" || (m.kind === "reversal" && ref && ref.kind === "takeout");
-  const isCount = m.kind === "count" || (m.kind === "reversal" && ref && ref.kind === "count");
-  const sub = isOut || isCount ? [] : ["Batch " + m.batch];
+  const sub = m.kind === "production" ? ["Batch " + m.batch] : []; // batches only show for Add
   if (m.kind === "takeout" && m.reason) sub.push(cap(m.reason) + (m.customer ? " – " + m.customer : ""));
   else if (m.customer) sub.push(m.customer);
   if (m.kind === "reversal" && ref) sub.push("undoes #" + ref.id);
@@ -724,7 +721,6 @@ async function quickUndo(id) {
 
 function productSheet(p) {
   const D = derive();
-  const list = batchesWithStock(D, p);
   const t = today(); let added = 0, out = 0;
   db.movements.forEach(m => { if (m.product !== p || m.entry_date !== t) return; const k = D.effKind(m); if (k === "production") added += m.boxes; else if (k === "takeout") out -= m.boxes; });
   const low = (db.settings || {})[p];
@@ -734,25 +730,20 @@ function productSheet(p) {
         h("tr", null, h("td", null, "In stock"), h("td", { class: "n" }, h("b", null, nf.format(D.stock[p]) + " boxes"))),
         h("tr", null, h("td", null, "Added today"), h("td", { class: "n pos" }, "+" + nf.format(added))),
         h("tr", null, h("td", null, "Subtracted today"), h("td", { class: "n neg" }, "−" + nf.format(out))),
-        low !== undefined ? h("tr", null, h("td", null, "Low-stock warning at"), h("td", { class: "n" }, low + " boxes")) : null)),
-    h("div", { class: "lbl" }, "Batches in stock (oldest first)"),
-    h("div", { class: "card" }, list.length ? h("table", { class: "t" },
-      h("tr", null, h("th", null, "Batch"), h("th", null, "First added"), h("th", { class: "n" }, "Boxes")),
-      list.map(b => h("tr", null, h("td", null, b.batch), h("td", null, b.first ? shortDay(b.first) : "–"), h("td", { class: "n" }, nf.format(b.boxes))))) : h("div", { class: "empty" }, "None in stock")),
-    D.batches.some(b => b.product === p && b.boxes < 0) ? h("p", { class: "err" }, "A batch shows less than 0 boxes – please do a stock count.") : null
+        low !== undefined ? h("tr", null, h("td", null, "Low-stock warning at"), h("td", { class: "n" }, low + " boxes")) : null))
   ], null, null);
 }
 
 /* ---------- history ---------- */
 let histLimit = 80;
 function histFilter() {
-  return { product: $("fProduct").value, kind: $("fKind").value, user: $("fUser").value, batch: $("fBatch").value.trim(), from: $("fFrom").value, to: $("fTo").value };
+  return { product: $("fProduct").value, kind: $("fKind").value, user: $("fUser").value, from: $("fFrom").value, to: $("fTo").value };
 }
 function filtered(D) {
   const f = histFilter();
   return db.movements.filter(m =>
     (!f.product || m.product === f.product) && (!f.kind || m.kind === f.kind) && (!f.user || String(m.user_id) === f.user) &&
-    (!f.batch || m.batch.toLowerCase().includes(f.batch.toLowerCase())) && (!f.from || m.entry_date >= f.from) && (!f.to || m.entry_date <= f.to));
+    (!f.from || m.entry_date >= f.from) && (!f.to || m.entry_date <= f.to));
 }
 function renderHistory(D) {
   const us = $("fUser"), cur = us.value; us.innerHTML = "";
@@ -788,8 +779,8 @@ function exportCSV() {
   const head = ["ID", "Entered at", "Date", "Product", "Batch", "Type", "Boxes", "Reason", "Customer / receiver", "Note", "By", "Undoes ID", "Undone by ID"];
   const lines = [head.map(cell).join(sep)];
   list.forEach(m => {
-    const d = new Date(m.logged_at);
-    lines.push([m.id, isoOf(d) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()), m.entry_date, PRODUCTS[m.product], m.batch, KIND[m.kind], m.boxes, m.reason || "", m.customer || "", m.note || "", D.userName[m.user_id] || "", m.ref_id || "", D.reversedBy[m.id] || ""].map(cell).join(sep));
+    const d = new Date(m.logged_at), batch = m.kind === "production" ? m.batch : "";
+    lines.push([m.id, isoOf(d) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()), m.entry_date, PRODUCTS[m.product], batch, KIND[m.kind], m.boxes, m.reason || "", m.customer || "", m.note || "", D.userName[m.user_id] || "", m.ref_id || "", D.reversedBy[m.id] || ""].map(cell).join(sep));
   });
   const a = h("a", { href: URL.createObjectURL(new Blob(["﻿" + lines.join("\r\n") + "\r\n"], { type: "text/csv;charset=utf-8" })), download: "sakal_stock_log_" + today() + ".csv" });
   document.body.append(a); a.click(); a.remove();
@@ -1381,8 +1372,8 @@ $("qty").addEventListener("keydown", e => { if (e.key === "Enter") doAdd(); });
 $("eDate").addEventListener("change", () => { if (!$("eDate").value) $("eDate").value = today(); if (!batchTouched) $("eBatch").value = defaultBatch($("eDate").value); updateBatchHint(); });
 $("eBatch").addEventListener("input", () => { batchTouched = $("eBatch").value.trim() !== defaultBatch($("eDate").value); updateBatchHint(); });
 $("seeAll").onclick = () => showTab("history");
-["fProduct", "fKind", "fUser", "fBatch", "fFrom", "fTo"].forEach(id => $(id).addEventListener("input", () => { histLimit = 80; render(); }));
-$("fClear").onclick = () => { ["fProduct", "fKind", "fUser", "fBatch", "fFrom", "fTo"].forEach(id => $(id).value = ""); render(); };
+["fProduct", "fKind", "fUser", "fFrom", "fTo"].forEach(id => $(id).addEventListener("input", () => { histLimit = 80; render(); }));
+$("fClear").onclick = () => { ["fProduct", "fKind", "fUser", "fFrom", "fTo"].forEach(id => $(id).value = ""); render(); };
 $("histMore").onclick = () => { histLimit += 200; render(); };
 $("exportBtn").onclick = exportCSV;
 $("tPeriod").onchange = () => {

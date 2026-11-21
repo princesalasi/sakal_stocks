@@ -308,7 +308,7 @@ details.f[open] > summary { margin-bottom: 12px; }
       <summary><span>Filter</span><span class="muted small" id="filterSummary" style="margin-left:auto;margin-right:10px;font-weight:400">All entries</span></summary>
       <div class="filters">
         <div class="field"><label for="fProduct">Product</label><select id="fProduct"><option value="">All</option><option value="ripe">Ripe</option><option value="unripe">Unripe</option></select></div>
-        <div class="field"><label for="fKind">Type</label><select id="fKind"><option value="">All</option><option value="production">Added</option><option value="takeout">Subtracted</option><option value="count">Stock count</option><option value="reversal">Correction</option></select></div>
+        <div class="field"><label for="fKind">Type</label><select id="fKind"><option value="">All</option><option value="production">Added</option><option value="takeout">Subtracted</option><option value="count">Stock count</option><option value="reversal">Correction</option><option value="undone">Undone</option></select></div>
         <div class="field" style="grid-column:1 / -1"><label for="fUser">Person</label><select id="fUser"></select></div>
       </div>
       <div class="rows daterows">
@@ -742,7 +742,7 @@ function histFilter() {
 function filtered(D) {
   const f = histFilter();
   return db.movements.filter(m =>
-    (!f.product || m.product === f.product) && (!f.kind || m.kind === f.kind) && (!f.user || String(m.user_id) === f.user) &&
+    (!f.product || m.product === f.product) && (!f.kind || (f.kind === "undone" ? !!D.reversedBy[m.id] : m.kind === f.kind && (f.kind === "reversal" || (!D.reversedBy[m.id] && !m.ref_id)))) && (!f.user || String(m.user_id) === f.user) &&
     (!f.from || m.entry_date >= f.from) && (!f.to || m.entry_date <= f.to));
 }
 function renderHistory(D) {
@@ -753,7 +753,7 @@ function renderHistory(D) {
   $("filterSummary").textContent = active ? active + " filter" + (active > 1 ? "s" : "") + " on" : "All entries";
   const list = filtered(D);
   // undone entries and their corrections cancel out, so leave both out of the totals
-  const counts = f.kind === "reversal" ? list : list.filter(m => !D.reversedBy[m.id] && m.kind !== "reversal" && !(m.kind === "count" && m.ref_id));
+  const counts = f.kind === "reversal" || f.kind === "undone" ? list : list.filter(m => !D.reversedBy[m.id] && m.kind !== "reversal" && !(m.kind === "count" && m.ref_id));
   let prod = 0, out = 0, adj = 0;
   counts.forEach(m => { const k = D.effKind(m); if (k === "production") prod += m.boxes; else if (k === "takeout") out -= m.boxes; else if (k === "count") adj += m.boxes; });
   $("histSum").innerHTML = "";

@@ -61,6 +61,8 @@ main { max-width: 640px; margin: 0 auto; padding: calc(env(safe-area-inset-top) 
 /* ---------- product cards ---------- */
 .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .pcard { position: relative; border: 0; border-radius: 26px; padding: 16px 16px 18px; min-height: 132px; text-align: left; color: #fff; cursor: pointer; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 8px 24px -10px rgba(0,0,0,.45); outline: none; }
+.ptotal { display: flex; align-items: baseline; justify-content: space-between; background: var(--card); border-radius: 14px; padding: 12px 16px; margin-top: 12px; box-shadow: var(--shadow); font-size: 15px; }
+.ptotal b { font-size: 20px; font-variant-numeric: tabular-nums; }
 .pcard.ripe { background: var(--ripe-card); } .pcard.unripe { background: var(--unripe-card); }
 .pcard::after { content: ""; position: absolute; inset: -4px; border-radius: 30px; border: 3px solid transparent; transition: border-color 200ms; pointer-events: none; }
 .pcard[aria-pressed="true"]::after { border-color: var(--text); }
@@ -278,6 +280,7 @@ details.f[open] > summary { margin-bottom: 12px; }
     <div class="status"><span class="dot" id="syncDot"></span><span id="whoName"></span><span id="syncAgo"></span></div>
     <div class="banner" id="offlineBanner" hidden></div>
     <div class="cards" id="cards"></div>
+    <div class="ptotal" aria-live="polite"><span>Total stock</span><span><b id="totalNum">0</b> <span id="totalUnit">boxes</span></span></div>
 
     <div class="panel">
       <div class="panel-for">Entry for <b id="panelFor">Ripe plantain</b></div>
@@ -629,6 +632,9 @@ function renderStock(D) {
     card.querySelector(".punit").textContent = D.stock[p] === 1 ? "Box" : "Boxes";
     card.querySelector(".plow").hidden = !(low[p] !== undefined && D.stock[p] <= low[p]);
   });
+  const total = D.stock.ripe + D.stock.unripe;
+  animateNum($("totalNum"), shownNum.total, total); shownNum.total = total;
+  $("totalUnit").textContent = total === 1 ? "box" : "boxes";
   $("panelFor").textContent = PRODUCT_LONG[prefs.product];
   updateBatchHint(D);
   const rc = $("recent"); rc.innerHTML = "";
